@@ -2,11 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Port the existing Optima Clays PostgreSQL/Prisma schema (27 models) to SQLite, seed the admin account, and prove the schema works standalone with real queries, before any Electron/IPC wiring touches it. Phase 2 of 6 from the [migration design spec](../specs/2026-07-23-electron-desktop-migration-design.md).
+**Goal:** Port the existing Optima Clays PostgreSQL/Prisma schema (28 models) to SQLite, seed the admin account, and prove the schema works standalone with real queries, before any Electron/IPC wiring touches it. Phase 2 of 6 from the [migration design spec](../specs/2026-07-23-electron-desktop-migration-design.md).
 
-**Architecture:** Same 27 models as the source project, provider switched to `sqlite`, using `prisma@6.19.3` with the standard `prisma-client-js` generator (verified directly against the source project's data: generates to `node_modules/@prisma/client`, `.env`/`DATABASE_URL` loading works with no extra config). All 16 enums stay as native Prisma `enum` blocks (SQLite has supported enums as TEXT columns since Prisma 6.2.0). The three array fields (`User.pinned_kpis`, `Supplier.material_types`, `ProductionBatch.defect_types`) become child tables with `onDelete: Cascade`, since they're pure per-parent tag lists, not independently meaningful rows.
+**Architecture:** Same 28 models as the source project, provider switched to `sqlite`, using `prisma@6.19.3` with the standard `prisma-client-js` generator (verified directly against the source project's data: generates to `node_modules/@prisma/client`, `.env`/`DATABASE_URL` loading works with no extra config). All 16 enums stay as native Prisma `enum` blocks (SQLite has supported enums as TEXT columns since Prisma 6.2.0). The three array fields (`User.pinned_kpis`, `Supplier.material_types`, `ProductionBatch.defect_types`) become child tables with `onDelete: Cascade`, since they're pure per-parent tag lists, not independently meaningful rows.
 
-**Tech Stack:** Prisma 6.19.3, @prisma/client 6.19.3, bcrypt 6.0.0, tsx 4.23.1 (for running seed/test scripts outside the Electron/Vite build)
+**Tech Stack:** Prisma 6.19.3, @prisma/client 6.19.3, bcryptjs 3.0.3, tsx 4.23.1 (for running seed/test scripts outside the Electron/Vite build)
+
+**Correction from the first implementation pass:** this plan originally specified `bcrypt` (a native addon). Task 1 hit a real environment gap: this build machine has no Visual Studio C++ Build Tools, so `electron-builder install-app-deps` cannot rebuild `bcrypt` for Electron's Node ABI. Rather than requiring a multi-gigabyte system toolchain install, this plan now uses `bcryptjs` — a pure-JavaScript, API-compatible bcrypt implementation with no native compilation step, ever. For a single-user desktop app doing occasional password hashing (login, password change), the performance difference versus native bcrypt is irrelevant, and this removes a whole class of native-module ABI fragility that would otherwise resurface on every machine that builds this app. All `bcrypt` references below are `bcryptjs`.
 
 ---
 
@@ -44,12 +46,11 @@ Expected: `Switched to a new branch 'feature/sqlite-schema'`
 Add to `dependencies`:
 ```json
     "@prisma/client": "^6.19.3",
-    "bcrypt": "^6.0.0"
+    "bcryptjs": "^3.0.3"
 ```
 
 Add to `devDependencies`:
 ```json
-    "@types/bcrypt": "^6.0.0",
     "prisma": "^6.19.3",
     "tsx": "^4.23.1"
 ```
@@ -84,11 +85,10 @@ The full `dependencies`/`devDependencies`/`scripts` blocks after this edit shoul
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
-    "bcrypt": "^6.0.0"
+    "bcryptjs": "^3.0.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@types/bcrypt": "^6.0.0",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -701,7 +701,7 @@ to:
 - [ ] **Step 7: Install dependencies**
 
 Run: `npm install`
-Expected: completes with no errors. `node_modules/.bin/prisma` and `node_modules/.bin/tsx` exist. `postinstall` runs `electron-builder install-app-deps` again (harmless, rebuilds native deps for the new `bcrypt` addition too).
+Expected: completes with no errors. `node_modules/.bin/prisma` and `node_modules/.bin/tsx` exist. `postinstall` runs `electron-builder install-app-deps` again — this should complete cleanly now, since `bcryptjs` has no native module to rebuild (unlike Prisma's own query engine, which is a downloaded binary, not a compiled-from-source native addon, so it isn't affected by the missing C++ build toolchain either).
 
 - [ ] **Step 8: Generate the Prisma client**
 
@@ -732,7 +732,7 @@ Expected: creates `prisma/dev.db`, generates and applies `prisma/migrations/<tim
 - [ ] **Step 2: Sanity-check the generated SQL**
 
 Run: `cat prisma/migrations/*/migration.sql | grep -c "CREATE TABLE"`
-Expected: `30` (27 original models + 3 new child tables: `UserPinnedKpi`, `SupplierMaterialType`, `ProductionBatchDefectType`).
+Expected: `31` (28 original models + 3 new child tables: `UserPinnedKpi`, `SupplierMaterialType`, `ProductionBatchDefectType`).
 
 - [ ] **Step 3: Commit**
 
@@ -754,7 +754,7 @@ Note: `prisma/dev.db` must NOT be committed — it's covered by the existing `*.
 
 ```typescript
 import { PrismaClient, Role } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -814,7 +814,7 @@ git commit -m "feat: seed admin user"
 ```typescript
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -950,12 +950,15 @@ git push -u origin feature/sqlite-schema
 gh pr create --title "SQLite schema and admin seed" --body "$(cat <<'EOF'
 Phase 2 of the desktop migration (see docs/superpowers/specs/2026-07-23-electron-desktop-migration-design.md).
 
-Ports the 27-model Prisma schema from the source web project to SQLite:
+Ports the 28-model Prisma schema from the source web project to SQLite:
 - All 16 enums kept as native Prisma enums (SQLite has supported this since
   Prisma 6.2.0), rather than downgrading to plain strings.
 - The three array fields (User.pinned_kpis, Supplier.material_types,
   ProductionBatch.defect_types) become child tables with cascade delete.
 - Admin account seeded (admin@optimaclays.rw / Admin@1234) via upsert.
+- Uses bcryptjs instead of native bcrypt (see plan doc for why: no C++
+  build toolchain on this machine, and no reason to accept that fragility
+  for a low-throughput desktop app anyway).
 
 No Electron/IPC wiring yet, that's Phase 3. This phase is verified entirely
 standalone: migration applies cleanly, seed runs, and 5 real-query tests
