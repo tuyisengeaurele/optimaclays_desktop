@@ -333,7 +333,7 @@ contextBridge.exposeInMainWorld('api', api)
 export type Api = typeof api
 ```
 
-This is a deliberately generic bridge (`invoke`/`invokePublic` take any channel name), which differs from Phase 1's "one named method per action" ideal. It's the pragmatic middle ground for a 23-domain port: every domain-specific method (`window.api.employees.list()`, etc.) gets added on the *renderer* side in Phase 4 as a thin wrapper around `window.api.invoke('employees:list', payload)`, keeping the preload itself small while still never exposing raw `ipcRenderer` or any Node capability beyond these two functions.
+This is a deliberately generic bridge (`invoke`/`invokePublic` take any channel name), which differs from Phase 1's "one named method per action" ideal. It's the pragmatic middle ground for a 24-domain port: every domain-specific method (`window.api.employees.list()`, etc.) gets added on the *renderer* side in Phase 4 as a thin wrapper around `window.api.invoke('employees:list', payload)`, keeping the preload itself small while still never exposing raw `ipcRenderer` or any Node capability beyond these two functions.
 
 - [ ] **Step 11: Update src/preload/index.d.ts**
 
@@ -905,7 +905,7 @@ Follow the Task 2 pattern for all 8, applying the payload-shape and buffer-retur
 
 - [ ] **Step 3: Register the eight new handler groups**
 
-Same pattern as before. `registerAll.ts` should now call all 23 domain register functions.
+Same pattern as before. `registerAll.ts` should now call all 24 domain register functions.
 
 - [ ] **Step 4: Verify it typechecks**
 
@@ -935,7 +935,7 @@ git commit -m "feat: port finance and system domain to ipc handlers"
 ```markdown
 ## Status
 
-Phase 3 of 6: IPC backend. All 23 resource domains ported from the source
+Phase 3 of 6: IPC backend. All 24 resource domains ported from the source
 web app's Express controllers to IPC handlers with session-based auth.
 Verified via manual smoke tests through the DevTools console. No renderer
 UI wiring yet — the app still shows the Phase 1 placeholder screen.
@@ -955,7 +955,7 @@ git push -u origin feature/ipc-backend
 gh pr create --title "IPC backend" --body "$(cat <<'EOF'
 Phase 3 of the desktop migration (see docs/superpowers/specs/2026-07-23-electron-desktop-migration-design.md).
 
-Ports all 23 resource domains from the source web app's Express controllers
+Ports all 24 resource domains from the source web app's Express controllers
 to IPC handlers:
 - Shared session/error/handle infrastructure (src/main/ipc/handle.ts,
   session.ts, errors.ts) replacing JWT cookies with an in-memory session
