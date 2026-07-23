@@ -384,7 +384,7 @@ Source: `backend/src/controllers/authController.ts`, `backend/src/routes/authRou
 | Channel | Source function | Roles |
 |---|---|---|
 | `auth:login` | `login` | PUBLIC |
-| `auth:logout` | `logout` | any authenticated |
+| `auth:logout` | `logout` | PUBLIC (source route has no `authenticate` middleware; must tolerate an expired/missing token) |
 | `auth:profile` | `getProfile` | any authenticated |
 | `auth:changePassword` | `changePassword` | any authenticated |
 | `auth:updateProfile` | `updateProfile` | any authenticated |
@@ -459,8 +459,10 @@ export function registerAuthHandlers(): void {
     }
   )
 
-  handle<{ token: string }, null>('auth:logout', null, async (payload) => {
-    destroySession(payload.token)
+  // Public, not handle(): the source route has no authenticate middleware, so
+  // logout must succeed even with an already-expired or missing token.
+  handlePublic<{ token: string | null }, null>('auth:logout', async ({ token }) => {
+    if (token) destroySession(token)
     return null
   })
 

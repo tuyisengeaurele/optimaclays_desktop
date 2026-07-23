@@ -74,7 +74,7 @@ Every handler:
 
 - Login: renderer sends email + password over `auth:login`. Main verifies the bcrypt hash (12 rounds, unchanged) against SQLite, issues a random session token (`crypto.randomBytes(32)`), stores it in an in-memory `Map<token, {userId, role, expiresAt}>`.
 - Token lives only in main-process memory. Renderer holds it in memory too (React auth context), never in localStorage or on disk.
-- Every IPC call carries the token; `auth:logout` and app restart both clear it. No "remember me" persistence, per approved decision.
+- Every authenticated IPC call carries the token via the preload's `invoke()` envelope. `auth:logout` is the one exception: it's a public channel (no session required to call it, since it must tolerate an already-expired or missing token), and the renderer passes the token directly in its payload instead. Either way, logout and app restart both clear it. No "remember me" persistence, per approved decision.
 - Role-gated access stays identical to today's five roles: `ADMIN, PRODUCTION_SUPERVISOR, SALES_OFFICER, STORE_MANAGER, ACCOUNTANT`.
 
 ## Printing, exports, imports
