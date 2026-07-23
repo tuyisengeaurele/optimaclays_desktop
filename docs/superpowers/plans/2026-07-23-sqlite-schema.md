@@ -981,7 +981,7 @@ git pull origin main
 
 ## Self-review notes
 
-- Every model from the source schema (27) is present with exactly two categories of change: enum blocks kept as-is, three array fields replaced by child tables. Relations, unique constraints, and defaults are otherwise unchanged from the source `schema.prisma`.
+- Every model from the source schema (28) is present with exactly two categories of change: enum blocks kept as-is, three array fields replaced by child tables. Relations, unique constraints, and defaults are otherwise unchanged from the source `schema.prisma`.
 - `UserPinnedKpi`/`SupplierMaterialType`/`ProductionBatchDefectType` field names (`kpi`, `materialType`, `defectType`) and relation names (`pinnedKpis`, `materialTypes`, `defectTypes`) are used consistently between the schema (Task 1) and the verification tests (Task 4).
 - The repository-helper layer mentioned in the design spec ("callers still work with `string[]` in and out") is deliberately not built in this phase — there are no callers yet. Building it now would be premature abstraction; it belongs in Phase 3 where the IPC handlers that actually need it get written.
 - Real employee PII from the source project's seed script is explicitly excluded, with the reasoning documented in both this plan and the PR body.
