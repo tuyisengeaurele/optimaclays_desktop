@@ -70,6 +70,17 @@ interface SetThresholdPayload {
   unit: string
 }
 
+// Shared with the sales domain (orders.ts's stock-availability check before an order is
+// created/amended), mirroring the source project's orderController importing this same
+// function from inventoryController directly.
+export async function getAvailableStock(brick_type: BrickType, quality_grade: QualityGrade): Promise<number> {
+  const result = await prisma.finishedGoodsStock.aggregate({
+    where: { brick_type, quality_grade },
+    _sum: { quantity: true }
+  })
+  return result._sum.quantity || 0
+}
+
 export function registerInventoryHandlers(): void {
   handle<void, ListRawMaterialsResult>('inventory:listRawMaterials', null, async () => {
     const stocks = await prisma.rawMaterialStock.findMany({ orderBy: { date: 'desc' }, include: { supplier: true } })
