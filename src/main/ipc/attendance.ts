@@ -65,7 +65,7 @@ interface MonthlySummary {
 }
 
 export function registerAttendanceHandlers(): void {
-  handle<ListAttendancePayload, unknown[]>('attendance:list', null, async ({ employeeId, month, year }) => {
+  handle<ListAttendancePayload, Array<AttendanceLog & { employee: Employee }>>('attendance:list', null, async ({ employeeId, month, year }) => {
     const where: Record<string, unknown> = {}
     if (employeeId) where.employeeId = employeeId
     if (month && year) {
@@ -80,7 +80,7 @@ export function registerAttendanceHandlers(): void {
     })
   })
 
-  handle<CreateAttendancePayload, unknown>(
+  handle<CreateAttendancePayload, AttendanceLog[] | (AttendanceLog & { employee: Employee })>(
     'attendance:create',
     ['ADMIN', 'PRODUCTION_SUPERVISOR', 'ACCOUNTANT'],
     async (payload) => {

@@ -2,12 +2,16 @@ import fs from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import ExcelJS from 'exceljs'
-import type { PaymentStatus, PayrollEntry, PayrollRun } from '@prisma/client'
+import type { PaymentStatus, PayrollRun, Prisma } from '@prisma/client'
 import { prisma } from '../db'
 import { handle } from './handle'
 import { BadRequestError, NotFoundError } from './errors'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+type PayrollRunWithCount = Prisma.PayrollRunGetPayload<{ include: { _count: { select: { entries: true } } } }>
+type PayrollRunWithEntries = Prisma.PayrollRunGetPayload<{ include: { entries: { include: { employee: true } } } }>
+type PayrollEntryWithEmployee = Prisma.PayrollEntryGetPayload<{ include: { employee: true } }>
 
 // Ported from the source project's backend/assets/logo.png; the desktop app keeps its
 // copy at the repo root instead of alongside a bundled backend. Packaged-app resolution
@@ -52,14 +56,14 @@ interface PayslipPayload {
 }
 
 export function registerPayrollHandlers(): void {
-  handle<void, unknown[]>('payroll:list', null, async () =>
+  handle<void, PayrollRunWithCount[]>('payroll:list', null, async () =>
     prisma.payrollRun.findMany({
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
       include: { _count: { select: { entries: true } } }
     })
   )
 
-  handle<CreatePayrollRunPayload, unknown>('payroll:create', ['ADMIN', 'ACCOUNTANT'], async ({ month, year }) => {
+  handle<CreatePayrollRunPayload, PayrollRunWithEntries>('payroll:create', ['ADMIN', 'ACCOUNTANT'], async ({ month, year }) => {
     const existing = await prisma.payrollRun.findFirst({ where: { month, year } })
     if (existing) throw new BadRequestError('Payroll run for this month/year already exists')
 
@@ -101,7 +105,7 @@ export function registerPayrollHandlers(): void {
     })
   })
 
-  handle<GetPayrollRunPayload, unknown>('payroll:get', null, async ({ runId }) => {
+  handle<GetPayrollRunPayload, PayrollRunWithEntries>('payroll:get', null, async ({ runId }) => {
     const run = await prisma.payrollRun.findUnique({
       where: { id: runId },
       include: { entries: { include: { employee: true } } }
@@ -110,7 +114,7 @@ export function registerPayrollHandlers(): void {
     return run
   })
 
-  handle<UpdateEntryPayload, unknown>(
+  handle<UpdateEntryPayload, PayrollEntryWithEmployee>(
     'payroll:updateEntry',
     ['ADMIN', 'ACCOUNTANT'],
     async ({ runId, entryId, gross_salary, bonus, deduction, payment_status, payment_date }) => {
@@ -166,13 +170,22 @@ export function registerPayrollHandlers(): void {
       })
       if (!run) throw new NotFoundError('Payroll run not found')
 
+      // The source backend read COMPANY_NAME/MD_NAME/RECONCILIATION_ACCOUNT from
+      // process.env, but never actually documented or set them - every other
+      // controller (e.g. proformaController) reads this same data from
+      // CompanySettings instead, so this export does the same for consistency.
+      const settings = await prisma.companySettings.findUnique({ where: { id: 'singleton' } })
+      const companyName = 'OPTIMA CLAYS LTD'
+      const mdName = settings?.director_name || ''
+      const reconciliationAccount = settings?.bank_account || ''
+
       const monStr = MONTHS[run.month - 1]
       const wb = new ExcelJS.Workbook()
       const ws = wb.addWorksheet(`${monStr}-${run.year}`)
 
       // Row 1: title merged
       ws.mergeCells('A1:H1')
-      ws.getCell('A1').value = `MONTHLY SALARIES ${monStr.toUpperCase()} ${run.year} ${process.env.COMPANY_NAME}`
+      ws.getCell('A1').value = `MONTHLY SALARIES ${monStr.toUpperCase()} ${run.year} ${companyName}`
       ws.getCell('A1').font = { bold: true, size: 13 }
       ws.getCell('A1').alignment = { horizontal: 'center' }
 
@@ -191,7 +204,7 @@ export function registerPayrollHandlers(): void {
       ws.getRow(2).font = { bold: true }
 
       let total = 0
-      run.entries.forEach((entry: PayrollEntry & { employee: { full_name: string; bank_name: string | null; bank_account_number: string | null } }, i: number) => {
+      run.entries.forEach((entry: PayrollEntryWithEmployee, i: number) => {
         const row = i + 3
         ws.getRow(row).values = [
           '',
@@ -200,7 +213,7 @@ export function registerPayrollHandlers(): void {
           entry.employee.bank_account_number || '',
           Math.round(entry.net_salary),
           entry.narration,
-          process.env.RECONCILIATION_ACCOUNT,
+          reconciliationAccount,
           ''
         ]
         total += entry.net_salary
@@ -210,8 +223,8 @@ export function registerPayrollHandlers(): void {
       ws.getRow(totalRow).values = ['', '', '', 'TOTAL=', Math.round(total), '', '', '']
       ws.getRow(totalRow).font = { bold: true }
 
-      ws.getRow(totalRow + 1).values = [`PREPARED AND APPROVED BY: ${process.env.MD_NAME}`]
-      ws.getRow(totalRow + 2).values = [`Managing Director of ${process.env.COMPANY_NAME}`]
+      ws.getRow(totalRow + 1).values = [`PREPARED AND APPROVED BY: ${mdName}`]
+      ws.getRow(totalRow + 2).values = [`Managing Director of ${companyName}`]
 
       const arrayBuffer = await wb.xlsx.writeBuffer()
       const buffer = Buffer.from(arrayBuffer).toString('base64')
