@@ -147,9 +147,12 @@ export function registerPayrollHandlers(): void {
     const run = await prisma.payrollRun.findUnique({ where: { id: runId } })
     if (!run) throw new NotFoundError('Payroll run not found')
     if (run.finalized) throw new BadRequestError('Cannot delete a finalized payroll run')
-    // Cascade delete entries first
-    await prisma.payrollEntry.deleteMany({ where: { payrollRunId: run.id } })
-    await prisma.payrollRun.delete({ where: { id: run.id } })
+    // Entries and the run must be removed together, matching the same
+    // transactional pattern used by invoices:delete and deliveries:delete.
+    await prisma.$transaction([
+      prisma.payrollEntry.deleteMany({ where: { payrollRunId: run.id } }),
+      prisma.payrollRun.delete({ where: { id: run.id } })
+    ])
     return { deleted: true }
   })
 
