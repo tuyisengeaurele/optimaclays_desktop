@@ -673,7 +673,7 @@ Same process as Step 2, using the Attendance channel map above.
 - [ ] **Step 4: Port payrollController.ts to src/main/ipc/payroll.ts**
 
 Same process, using the Payroll channel map above, with two specific adjustments:
-- `downloadPayslipPdf`: return `{ html: string, filename: string }` (the same HTML template string the source function builds, with `${logoBase64}` reading from `C:\Users\user\OneDrive\Documents\Projects\Desktop\optimaclays_desktop\logo.png` instead of the source project's `backend/assets/logo.png` — read the file with Node's `fs.readFileSync` and base64-encode it the same way the source does). Do not attempt to generate a PDF file or use Puppeteer; that's Phase 6's job.
+- `downloadPayslipPdf`: return `{ html: string, filename: string }` (the same HTML template string the source function builds, with `${logoBase64}` reading from this project's `logo.png` at the repo root instead of the source project's `backend/assets/logo.png`). Resolve the path portably, the same way `src/main/db.ts` resolves the dev-mode database path — `app.isPackaged ? join(process.resourcesPath, 'logo.png') : join(__dirname, '../../logo.png')` — never hardcode a literal absolute path tied to one machine/username. Read the file with Node's `fs.readFileSync` and base64-encode it the same way the source does. Do not attempt to generate a PDF file or use Puppeteer; that's Phase 6's job. (Note: the packaged-mode path assumes Phase 6 adds `logo.png` to electron-builder's `extraResources`, which doesn't exist yet — this only resolves correctly in dev/unpackaged builds until then.)
 - `exportPayroll`: build the same xlsx workbook with `exceljs` that the source function builds, but return it as `{ buffer: string (base64), filename: string }` instead of streaming an HTTP response. Writing that buffer to disk via a native save dialog is Phase 4's job.
 
 - [ ] **Step 5: Register the three new handler groups**
@@ -844,7 +844,7 @@ Deliveries (`deliveryRoutes.ts`): `deliveries:list` (any) -> `listDeliveries`, `
 
 - [ ] **Step 1: Port each of the 7 controllers to its corresponding file**
 
-Follow the Task 2 pattern for all 7. For `proformas:pdf` and `deliveries:waybill`: same treatment as `payroll:payslip` in Task 3 — return `{ html: string, filename: string }` built from the source controller's existing HTML-string logic (with the logo read from `logo.png` at the new repo root, same base64-embed approach), no PDF generation, no Puppeteer.
+Follow the Task 2 pattern for all 7. For `proformas:pdf` and `deliveries:waybill`: same treatment as `payroll:payslip` in Task 3 — return `{ html: string, filename: string }` built from the source controller's existing HTML-string logic, reading the logo via the same portable `app.isPackaged` path resolution used in `payroll.ts` (never a hardcoded literal path), no PDF generation, no Puppeteer.
 
 - [ ] **Step 2: Register the seven new handler groups**
 
