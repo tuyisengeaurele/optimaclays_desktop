@@ -197,28 +197,32 @@ export function registerProductionHandlers(): void {
       const materials = validateMaterialsUsed(materials_used)
       const batchDate = new Date(date)
 
-      const batch = await prisma.productionBatch.create({
-        data: {
-          date: batchDate,
-          shift,
-          kiln_number: kiln_number || '',
-          kilnId: kilnId || null,
-          brick_type: brick_type || 'BRICK_10',
-          custom_name: custom_name || null,
-          bricks_target: Number(bricks_target),
-          current_stage: current_stage || 'RAW_MIXING',
-          consumptions: materials.length
-            ? { create: materials.map((m) => ({ material_type: m.material_type, quantity_used: m.quantity_used, date: batchDate, notes: m.notes || null })) }
-            : undefined
-        },
-        include: { kiln: true, consumptions: true }
-      })
-
       // The source schema's defect_types was a plain scalar column, settable at any point
       // in a batch's life (the source UI only ever set it via completeBatch, but nothing in
       // the model enforced that). Accepting it here too keeps create/update/complete
-      // symmetric now that it is a child table wired through the same repository.
-      const savedDefectTypes = await setDefectTypes(batch.id, Array.isArray(defectTypes) ? (defectTypes as DefectType[]) : [])
+      // symmetric now that it is a child table wired through the same repository. The
+      // batch row and its defect types are written in one transaction so a failure
+      // partway through never leaves a batch committed with lost defect-type data.
+      const { batch, savedDefectTypes } = await prisma.$transaction(async (tx) => {
+        const created = await tx.productionBatch.create({
+          data: {
+            date: batchDate,
+            shift,
+            kiln_number: kiln_number || '',
+            kilnId: kilnId || null,
+            brick_type: brick_type || 'BRICK_10',
+            custom_name: custom_name || null,
+            bricks_target: Number(bricks_target),
+            current_stage: current_stage || 'RAW_MIXING',
+            consumptions: materials.length
+              ? { create: materials.map((m) => ({ material_type: m.material_type, quantity_used: m.quantity_used, date: batchDate, notes: m.notes || null })) }
+              : undefined
+          },
+          include: { kiln: true, consumptions: true }
+        })
+        const defects = await setDefectTypes(created.id, Array.isArray(defectTypes) ? (defectTypes as DefectType[]) : [], tx)
+        return { batch: created, savedDefectTypes: defects }
+      })
       return { ...batch, defectTypes: savedDefectTypes }
     }
   )
@@ -238,11 +242,11 @@ export function registerProductionHandlers(): void {
       const batchDate = date ? new Date(date) : batch.date
       const materials = materials_used !== undefined ? validateMaterialsUsed(materials_used) : null
 
-      const updated = await prisma.$transaction(async (tx) => {
+      const { updated, savedDefectTypes } = await prisma.$transaction(async (tx) => {
         if (materials) {
           await tx.rawMaterialConsumption.deleteMany({ where: { productionBatchId: id } })
         }
-        return tx.productionBatch.update({
+        const result = await tx.productionBatch.update({
           where: { id },
           data: {
             date: date ? batchDate : undefined,
@@ -260,9 +264,10 @@ export function registerProductionHandlers(): void {
           },
           include: { kiln: true, consumptions: true }
         })
+        const defects = defectTypes !== undefined ? await setDefectTypes(id, defectTypes as DefectType[], tx) : await getDefectTypes(id)
+        return { updated: result, savedDefectTypes: defects }
       })
 
-      const savedDefectTypes = defectTypes !== undefined ? await setDefectTypes(id, defectTypes as DefectType[]) : await getDefectTypes(id)
       return { ...updated, defectTypes: savedDefectTypes }
     }
   )
@@ -288,7 +293,7 @@ export function registerProductionHandlers(): void {
       const rejected = batch.bricks_target - produced
       const goodQty = produced
 
-      const updated = await prisma.$transaction(async (tx) => {
+      const { updated, savedDefectTypes } = await prisma.$transaction(async (tx) => {
         const result = await tx.productionBatch.update({
           where: { id },
           data: {
@@ -343,10 +348,10 @@ export function registerProductionHandlers(): void {
           })
         }
 
-        return result
+        const defects = await setDefectTypes(id, Array.isArray(defectTypes) ? (defectTypes as DefectType[]) : [], tx)
+        return { updated: result, savedDefectTypes: defects }
       })
 
-      const savedDefectTypes = await setDefectTypes(id, Array.isArray(defectTypes) ? (defectTypes as DefectType[]) : [])
       return { ...updated, defectTypes: savedDefectTypes }
     }
   )

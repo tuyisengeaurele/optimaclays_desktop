@@ -61,16 +61,19 @@ export function registerSupplierHandlers(): void {
     ['ADMIN', 'STORE_MANAGER'],
     async ({ name, contact_name, phone, materialTypes, payment_terms, notes }) => {
       if (!name?.trim()) throw new BadRequestError('name is required')
-      const supplier = await prisma.supplier.create({
-        data: {
-          name: name.trim(),
-          contact_name: contact_name || null,
-          phone: phone || null,
-          payment_terms: payment_terms || null,
-          notes: notes || null
-        }
+      const { supplier, savedMaterialTypes } = await prisma.$transaction(async (tx) => {
+        const created = await tx.supplier.create({
+          data: {
+            name: name.trim(),
+            contact_name: contact_name || null,
+            phone: phone || null,
+            payment_terms: payment_terms || null,
+            notes: notes || null
+          }
+        })
+        const types = await setMaterialTypes(created.id, Array.isArray(materialTypes) ? (materialTypes as MaterialType[]) : [], tx)
+        return { supplier: created, savedMaterialTypes: types }
       })
-      const savedMaterialTypes = await setMaterialTypes(supplier.id, Array.isArray(materialTypes) ? (materialTypes as MaterialType[]) : [])
       return { ...supplier, materialTypes: savedMaterialTypes }
     }
   )
@@ -82,20 +85,22 @@ export function registerSupplierHandlers(): void {
       const supplier = await prisma.supplier.findFirst({ where: { id, deletedAt: null } })
       if (!supplier) throw new NotFoundError('Supplier not found')
 
-      const updated = await prisma.supplier.update({
-        where: { id },
-        data: {
-          name: name?.trim() || undefined,
-          contact_name: contact_name !== undefined ? contact_name || null : undefined,
-          phone: phone !== undefined ? phone || null : undefined,
-          payment_terms: payment_terms !== undefined ? payment_terms || null : undefined,
-          notes: notes !== undefined ? notes || null : undefined,
-          is_active: is_active !== undefined ? Boolean(is_active) : undefined
-        }
+      const { updated, savedMaterialTypes } = await prisma.$transaction(async (tx) => {
+        const result = await tx.supplier.update({
+          where: { id },
+          data: {
+            name: name?.trim() || undefined,
+            contact_name: contact_name !== undefined ? contact_name || null : undefined,
+            phone: phone !== undefined ? phone || null : undefined,
+            payment_terms: payment_terms !== undefined ? payment_terms || null : undefined,
+            notes: notes !== undefined ? notes || null : undefined,
+            is_active: is_active !== undefined ? Boolean(is_active) : undefined
+          }
+        })
+        const types = materialTypes !== undefined ? await setMaterialTypes(id, materialTypes as MaterialType[], tx) : await getMaterialTypes(id)
+        return { updated: result, savedMaterialTypes: types }
       })
 
-      const savedMaterialTypes =
-        materialTypes !== undefined ? await setMaterialTypes(id, materialTypes as MaterialType[]) : await getMaterialTypes(id)
       return { ...updated, materialTypes: savedMaterialTypes }
     }
   )
