@@ -1,0 +1,16 @@
+appId: rw.co.optimaclays.desktop
+productName: Optima Clays
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - '**/*.node'
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
