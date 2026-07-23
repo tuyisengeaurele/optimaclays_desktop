@@ -40,10 +40,9 @@ No HTTP server, no open port, no CORS surface. Renderer never gets Node or files
 
 ## Data layer
 
-Provider changes from `postgresql` to `sqlite`. Prisma's SQLite connector does not support native enums or scalar list (array) fields, both of which the current schema uses.
+Provider changes from `postgresql` to `sqlite`, using `prisma@6.19.3` with the standard `prisma-client-js` generator (verified directly: generates to `node_modules/@prisma/client`, imported the normal way, `.env`/`DATABASE_URL` loading works with no extra setup). Prisma 7 exists but changes the generator to a project-local TS-first client that would need extra bundling work for no benefit here, so this project deliberately stays on the 6.x line.
 
-**Enums (16 total) become plain `String` columns**, validated by the same Zod schemas already used at the controller/handler boundary:
-`Role, WageType, PaymentStatus, AttendanceStatus, Shift, ProductionStage, MaterialType, BrickType, QualityGrade, CustomerType, OrderStatus, PaymentMethod, DeliveryStatus, KilnStatus, DefectType, RejectDisposition`
+**Enums (16 total) stay as native Prisma `enum` blocks**, unchanged from the original schema. Verified directly: SQLite gained enum and JSON support in Prisma 6.2.0+, storing enum values as a `TEXT` column with the default enforced at the column level and valid-value enforcement handled by Prisma Client rather than a DB constraint. This is strictly better than the plain-`String` fallback originally planned here, since it keeps generated TypeScript types and autocomplete for `Role, WageType, PaymentStatus, AttendanceStatus, Shift, ProductionStage, MaterialType, BrickType, QualityGrade, CustomerType, OrderStatus, PaymentMethod, DeliveryStatus, KilnStatus, DefectType, RejectDisposition`.
 
 **Array fields become normalized child tables** (per approved decision):
 - `User.pinned_kpis` (String[]) -> `UserPinnedKpi { id, userId, kpi }`
