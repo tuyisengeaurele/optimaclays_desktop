@@ -20,6 +20,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "pretest:db": "npm run db:seed",
     "test:db": "tsx --test prisma/verify.test.ts",
     "pretest:e2e": "npm run build",
     "test:e2e": "playwright test"
