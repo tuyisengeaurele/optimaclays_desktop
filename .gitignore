@@ -2,7 +2,11 @@ node_modules/
 dist/
 dist-electron/
 release/
+out/
+test-results/
+playwright-report/
 *.db
 *.db-journal
 .env
 .env.local
+.claude/
