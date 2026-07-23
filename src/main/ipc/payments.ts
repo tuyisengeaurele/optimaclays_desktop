@@ -2,6 +2,7 @@ import type { Payment, PaymentMethod } from '@prisma/client'
 import { prisma } from '../db'
 import { handle } from './handle'
 import { BadRequestError, NotFoundError } from './errors'
+import { computeIsOverdue } from './invoices'
 
 interface ListPaymentsPayload {
   invoiceId?: string
@@ -45,7 +46,7 @@ export function registerPaymentHandlers(): void {
     }
 
     const newTotalPaid = alreadyPaid + Number(amount)
-    const isOverdue = invoice.due_date ? new Date() > invoice.due_date && newTotalPaid < invoice.total : false
+    const isOverdue = computeIsOverdue(invoice, newTotalPaid)
 
     // Recording the payment and refreshing the invoice's overdue flag must succeed or
     // fail together — otherwise a payment could be recorded while the invoice's stored

@@ -21,7 +21,7 @@ interface DeleteInvoicePayload {
   id: string
 }
 
-function computeIsOverdue(invoice: { due_date: Date | null; total: number }, paid: number): boolean {
+export function computeIsOverdue(invoice: { due_date: Date | null; total: number }, paid: number): boolean {
   if (!invoice.due_date) return false
   return new Date() > invoice.due_date && paid < invoice.total
 }
