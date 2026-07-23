@@ -14,6 +14,14 @@ import { registerInvoiceHandlers } from './invoices'
 import { registerProformaHandlers } from './proformas'
 import { registerPaymentHandlers } from './payments'
 import { registerDeliveryHandlers } from './deliveries'
+import { registerExpenseHandlers } from './expenses'
+import { registerExpenseCategoryHandlers } from './expenseCategories'
+import { registerReportHandlers } from './reports'
+import { registerDashboardHandlers } from './dashboard'
+import { registerSettingsHandlers } from './settings'
+import { registerAuditHandlers } from './audit'
+import { registerNotificationHandlers } from './notifications'
+import { registerImportHandlers } from './import'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -32,4 +40,12 @@ export function registerAllHandlers(): void {
   registerProformaHandlers()
   registerPaymentHandlers()
   registerDeliveryHandlers()
+  registerExpenseHandlers()
+  registerExpenseCategoryHandlers()
+  registerReportHandlers()
+  registerDashboardHandlers()
+  registerSettingsHandlers()
+  registerAuditHandlers()
+  registerNotificationHandlers()
+  registerImportHandlers()
 }
