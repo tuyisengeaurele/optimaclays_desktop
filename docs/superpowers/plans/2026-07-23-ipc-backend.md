@@ -333,7 +333,7 @@ contextBridge.exposeInMainWorld('api', api)
 export type Api = typeof api
 ```
 
-This is a deliberately generic bridge (`invoke`/`invokePublic` take any channel name), which differs from Phase 1's "one named method per action" ideal. It's the pragmatic middle ground for a 23-domain port: every domain-specific method (`window.api.employees.list()`, etc.) gets added on the *renderer* side in Phase 4 as a thin wrapper around `window.api.invoke('employees:list', payload)`, keeping the preload itself small while still never exposing raw `ipcRenderer` or any Node capability beyond these two functions.
+This is a deliberately generic bridge (`invoke`/`invokePublic` take any channel name), which differs from Phase 1's "one named method per action" ideal. It's the pragmatic middle ground for a 24-domain port: every domain-specific method (`window.api.employees.list()`, etc.) gets added on the *renderer* side in Phase 4 as a thin wrapper around `window.api.invoke('employees:list', payload)`, keeping the preload itself small while still never exposing raw `ipcRenderer` or any Node capability beyond these two functions.
 
 - [ ] **Step 11: Update src/preload/index.d.ts**
 
@@ -384,7 +384,7 @@ Source: `backend/src/controllers/authController.ts`, `backend/src/routes/authRou
 | Channel | Source function | Roles |
 |---|---|---|
 | `auth:login` | `login` | PUBLIC |
-| `auth:logout` | `logout` | any authenticated |
+| `auth:logout` | `logout` | PUBLIC (source route has no `authenticate` middleware; must tolerate an expired/missing token) |
 | `auth:profile` | `getProfile` | any authenticated |
 | `auth:changePassword` | `changePassword` | any authenticated |
 | `auth:updateProfile` | `updateProfile` | any authenticated |
@@ -459,8 +459,10 @@ export function registerAuthHandlers(): void {
     }
   )
 
-  handle<{ token: string }, null>('auth:logout', null, async (payload) => {
-    destroySession(payload.token)
+  // Public, not handle(): the source route has no authenticate middleware, so
+  // logout must succeed even with an already-expired or missing token.
+  handlePublic<{ token: string | null }, null>('auth:logout', async ({ token }) => {
+    if (token) destroySession(token)
     return null
   })
 
@@ -671,7 +673,7 @@ Same process as Step 2, using the Attendance channel map above.
 - [ ] **Step 4: Port payrollController.ts to src/main/ipc/payroll.ts**
 
 Same process, using the Payroll channel map above, with two specific adjustments:
-- `downloadPayslipPdf`: return `{ html: string, filename: string }` (the same HTML template string the source function builds, with `${logoBase64}` reading from `C:\Users\user\OneDrive\Documents\Projects\Desktop\optimaclays_desktop\logo.png` instead of the source project's `backend/assets/logo.png` — read the file with Node's `fs.readFileSync` and base64-encode it the same way the source does). Do not attempt to generate a PDF file or use Puppeteer; that's Phase 6's job.
+- `downloadPayslipPdf`: return `{ html: string, filename: string }` (the same HTML template string the source function builds, with `${logoBase64}` reading from this project's `logo.png` at the repo root instead of the source project's `backend/assets/logo.png`). Resolve the path portably, the same way `src/main/db.ts` resolves the dev-mode database path — `app.isPackaged ? join(process.resourcesPath, 'logo.png') : join(__dirname, '../../logo.png')` — never hardcode a literal absolute path tied to one machine/username. Read the file with Node's `fs.readFileSync` and base64-encode it the same way the source does. Do not attempt to generate a PDF file or use Puppeteer; that's Phase 6's job. (Note: the packaged-mode path assumes Phase 6 adds `logo.png` to electron-builder's `extraResources`, which doesn't exist yet — this only resolves correctly in dev/unpackaged builds until then.)
 - `exportPayroll`: build the same xlsx workbook with `exceljs` that the source function builds, but return it as `{ buffer: string (base64), filename: string }` instead of streaming an HTTP response. Writing that buffer to disk via a native save dialog is Phase 4's job.
 
 - [ ] **Step 5: Register the three new handler groups**
@@ -842,7 +844,7 @@ Deliveries (`deliveryRoutes.ts`): `deliveries:list` (any) -> `listDeliveries`, `
 
 - [ ] **Step 1: Port each of the 7 controllers to its corresponding file**
 
-Follow the Task 2 pattern for all 7. For `proformas:pdf` and `deliveries:waybill`: same treatment as `payroll:payslip` in Task 3 — return `{ html: string, filename: string }` built from the source controller's existing HTML-string logic (with the logo read from `logo.png` at the new repo root, same base64-embed approach), no PDF generation, no Puppeteer.
+Follow the Task 2 pattern for all 7. For `proformas:pdf` and `deliveries:waybill`: same treatment as `payroll:payslip` in Task 3 — return `{ html: string, filename: string }` built from the source controller's existing HTML-string logic, reading the logo via the same portable `app.isPackaged` path resolution used in `payroll.ts` (never a hardcoded literal path), no PDF generation, no Puppeteer.
 
 - [ ] **Step 2: Register the seven new handler groups**
 
@@ -903,7 +905,7 @@ Follow the Task 2 pattern for all 8, applying the payload-shape and buffer-retur
 
 - [ ] **Step 3: Register the eight new handler groups**
 
-Same pattern as before. `registerAll.ts` should now call all 23 domain register functions.
+Same pattern as before. `registerAll.ts` should now call all 24 domain register functions.
 
 - [ ] **Step 4: Verify it typechecks**
 
@@ -933,7 +935,7 @@ git commit -m "feat: port finance and system domain to ipc handlers"
 ```markdown
 ## Status
 
-Phase 3 of 6: IPC backend. All 23 resource domains ported from the source
+Phase 3 of 6: IPC backend. All 24 resource domains ported from the source
 web app's Express controllers to IPC handlers with session-based auth.
 Verified via manual smoke tests through the DevTools console. No renderer
 UI wiring yet — the app still shows the Phase 1 placeholder screen.
@@ -953,7 +955,7 @@ git push -u origin feature/ipc-backend
 gh pr create --title "IPC backend" --body "$(cat <<'EOF'
 Phase 3 of the desktop migration (see docs/superpowers/specs/2026-07-23-electron-desktop-migration-design.md).
 
-Ports all 23 resource domains from the source web app's Express controllers
+Ports all 24 resource domains from the source web app's Express controllers
 to IPC handlers:
 - Shared session/error/handle infrastructure (src/main/ipc/handle.ts,
   session.ts, errors.ts) replacing JWT cookies with an in-memory session
