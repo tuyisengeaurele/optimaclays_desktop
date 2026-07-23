@@ -5,6 +5,7 @@ test-results/
 playwright-report/
 *.db
 *.db-journal
+*.tsbuildinfo
 .env
 .env.local
 .claude/
