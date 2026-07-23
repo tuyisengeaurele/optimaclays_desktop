@@ -115,6 +115,22 @@ test('employees -> attendance -> payroll round-trip through real IPC, with clean
     // payroll:list shows it
     const runs = await invokeWithToken<PayrollRunDto[]>('payroll:list', adminToken, {})
     expect(runs.some((r) => r.id === payrollRunId)).toBe(true)
+
+    // payroll:payslip and payroll:export both read the logo via the shared
+    // logoPath.ts helper - exercise them for real rather than trusting a
+    // byte-diff that the refactor didn't change runtime behavior.
+    const payslip = await invokeWithToken<{ html: string; filename: string }>('payroll:payslip', adminToken, {
+      runId: payrollRunId,
+      employeeId
+    })
+    expect(payslip.html.length).toBeGreaterThan(0)
+    expect(payslip.filename.length).toBeGreaterThan(0)
+
+    const exported = await invokeWithToken<{ buffer: string; filename: string }>('payroll:export', adminToken, {
+      runId: payrollRunId
+    })
+    expect(exported.buffer.length).toBeGreaterThan(0)
+    expect(exported.filename.length).toBeGreaterThan(0)
   } finally {
     // Clean up in FK-safe order: payroll entries -> payroll run -> attendance logs -> employee.
     if (payrollRunId) {
