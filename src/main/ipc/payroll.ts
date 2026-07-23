@@ -1,4 +1,6 @@
 import fs from 'fs'
+import { join } from 'path'
+import { app } from 'electron'
 import ExcelJS from 'exceljs'
 import type { PaymentStatus, PayrollEntry, PayrollRun } from '@prisma/client'
 import { prisma } from '../db'
@@ -8,8 +10,10 @@ import { BadRequestError, NotFoundError } from './errors'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 // Ported from the source project's backend/assets/logo.png; the desktop app keeps its
-// copy at the repo root instead of alongside a bundled backend.
-const LOGO_PATH = 'C:\\Users\\user\\OneDrive\\Documents\\Projects\\Desktop\\optimaclays_desktop\\logo.png'
+// copy at the repo root instead of alongside a bundled backend. Packaged-app resolution
+// (resourcesPath) depends on Phase 6 adding logo.png to electron-builder's extraResources,
+// which doesn't exist yet - this only resolves correctly in dev/unpackaged builds for now.
+const LOGO_PATH = app.isPackaged ? join(process.resourcesPath, 'logo.png') : join(__dirname, '../../logo.png')
 
 interface CreatePayrollRunPayload {
   month: number
