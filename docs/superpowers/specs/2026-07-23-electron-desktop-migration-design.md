@@ -51,7 +51,7 @@ Provider changes from `postgresql` to `sqlite`, using `prisma@6.19.3` with the s
 
 Each gets a small repository helper so callers still work with `string[]` in and out; the join-table plumbing is internal.
 
-All 27 models carry over with these two adjustments; relations, unique constraints, and defaults stay the same.
+All 28 models carry over with these two adjustments; relations, unique constraints, and defaults stay the same.
 
 **Startup sequence:** DB file lives at `app.getPath('userData')/optimaclays.db`. On first launch, run Prisma migrations against that file, then check if `User` is empty and seed the admin account:
 - Email: `admin@optimaclays.rw`
