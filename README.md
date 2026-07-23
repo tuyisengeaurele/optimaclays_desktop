@@ -6,8 +6,10 @@ Design spec: `docs/superpowers/specs/2026-07-23-electron-desktop-migration-desig
 
 ## Status
 
-Phase 2 of 6: SQLite schema. Prisma schema, migrations, and admin seed exist
-and are verified standalone. No IPC/UI wiring to the app yet.
+Phase 3 of 6: IPC backend. All 24 resource domains ported from the source
+web app's Express controllers to IPC handlers with session-based auth.
+Verified via manual smoke tests through the DevTools console. No renderer
+UI wiring yet — the app still shows the Phase 1 placeholder screen.
 
 ## Development
 
