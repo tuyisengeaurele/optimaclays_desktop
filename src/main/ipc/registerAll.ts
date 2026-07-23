@@ -7,6 +7,13 @@ import { registerKilnHandlers } from './kilns'
 import { registerInventoryHandlers } from './inventory'
 import { registerSupplierHandlers } from './suppliers'
 import { registerReconciliationHandlers } from './reconciliation'
+import { registerCustomerHandlers } from './customers'
+import { registerOrderHandlers } from './orders'
+import { registerPriceCatalogueHandlers } from './priceCatalogue'
+import { registerInvoiceHandlers } from './invoices'
+import { registerProformaHandlers } from './proformas'
+import { registerPaymentHandlers } from './payments'
+import { registerDeliveryHandlers } from './deliveries'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -18,4 +25,11 @@ export function registerAllHandlers(): void {
   registerInventoryHandlers()
   registerSupplierHandlers()
   registerReconciliationHandlers()
+  registerCustomerHandlers()
+  registerOrderHandlers()
+  registerPriceCatalogueHandlers()
+  registerInvoiceHandlers()
+  registerProformaHandlers()
+  registerPaymentHandlers()
+  registerDeliveryHandlers()
 }
