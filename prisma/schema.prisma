@@ -1,0 +1,563 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PRODUCTION_SUPERVISOR
+  SALES_OFFICER
+  STORE_MANAGER
+  ACCOUNTANT
+}
+
+enum WageType {
+  MONTHLY
+  DAILY
+  PIECE_RATE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+enum ProductionStage {
+  RAW_MIXING
+  MOLDING
+  DRYING
+  KILN_FIRING
+  QUALITY_CHECK
+  STOCKPILED
+}
+
+enum MaterialType {
+  CLAY
+  SAND
+  FUEL_FIREWOOD
+  FUEL_COAL
+  DIESEL
+  CEMENT
+  OTHER
+}
+
+enum BrickType {
+  BRICK_10
+  PAVING_BLOCK
+  HALF_BRICK
+  LOW_ROCK_BOND
+  CUSTOM
+}
+
+enum QualityGrade {
+  GRADE_A
+  GRADE_B
+  REJECT
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PRODUCTION
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+}
+
+enum KilnStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum DefectType {
+  CRACKING
+  UNDER_FIRING
+  OVER_FIRING
+  DIMENSION_ERROR
+  COLOUR_VARIATION
+  OTHER
+}
+
+enum RejectDisposition {
+  REWORK
+  DOWNGRADE_TO_B
+  DISPOSE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  full_name    String
+  role         Role     @default(SALES_OFFICER)
+  is_active    Boolean  @default(true)
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pinnedKpis UserPinnedKpi[]
+}
+
+model UserPinnedKpi {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  kpi    String
+
+  @@unique([userId, kpi])
+}
+
+model Employee {
+  id                  String    @id @default(uuid())
+  full_name           String
+  national_id         String?   @unique
+  phone               String?
+  job_title           String?
+  hire_date           DateTime?
+  wage_type           WageType  @default(MONTHLY)
+  base_salary         Float     @default(0)
+  bank_name           String?
+  bank_account_number String?
+  is_active           Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  payrollEntries PayrollEntry[]
+  attendanceLogs AttendanceLog[]
+}
+
+model PayrollRun {
+  id        String        @id @default(uuid())
+  month     Int
+  year      Int
+  status    PaymentStatus @default(PENDING)
+  finalized Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  entries PayrollEntry[]
+}
+
+model PayrollEntry {
+  id             String        @id @default(uuid())
+  payrollRun     PayrollRun    @relation(fields: [payrollRunId], references: [id])
+  payrollRunId   String
+  employee       Employee      @relation(fields: [employeeId], references: [id])
+  employeeId     String
+  gross_salary   Float
+  bonus          Float         @default(0)
+  deduction      Float         @default(0)
+  net_salary     Float
+  narration      String
+  payment_status PaymentStatus @default(PENDING)
+  payment_date   DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model AttendanceLog {
+  id          String           @id @default(uuid())
+  employee    Employee         @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  date        DateTime
+  status      AttendanceStatus
+  wage_earned Float?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([employeeId, date])
+}
+
+model Kiln {
+  id                String     @id @default(uuid())
+  name              String     @unique
+  capacity          Int        @default(0)
+  status            KilnStatus @default(ACTIVE)
+  last_service_date DateTime?
+  notes             String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  batches ProductionBatch[]
+}
+
+model ProductionBatch {
+  id                 String             @id @default(uuid())
+  date               DateTime
+  shift              Shift
+  kiln_number        String
+  kilnId             String?
+  kiln               Kiln?              @relation(fields: [kilnId], references: [id])
+  brick_type         BrickType          @default(BRICK_10)
+  custom_name        String?
+  bricks_target      Int
+  bricks_produced    Int                @default(0)
+  bricks_rejected    Int                @default(0)
+  rejection_reason   String?
+  reject_disposition RejectDisposition?
+  current_stage      ProductionStage    @default(RAW_MIXING)
+  completed_at       DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  defectTypes  ProductionBatchDefectType[]
+  consumptions RawMaterialConsumption[]
+}
+
+model ProductionBatchDefectType {
+  id                String          @id @default(uuid())
+  productionBatch   ProductionBatch @relation(fields: [productionBatchId], references: [id], onDelete: Cascade)
+  productionBatchId String
+  defectType        DefectType
+
+  @@unique([productionBatchId, defectType])
+}
+
+model Supplier {
+  id            String    @id @default(uuid())
+  name          String
+  contact_name  String?
+  phone         String?
+  payment_terms String?
+  notes         String?
+  is_active     Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  materialTypes    SupplierMaterialType[]
+  rawMaterialStock RawMaterialStock[]
+}
+
+model SupplierMaterialType {
+  id           String       @id @default(uuid())
+  supplier     Supplier     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId   String
+  materialType MaterialType
+
+  @@unique([supplierId, materialType])
+}
+
+model RawMaterialStock {
+  id            String       @id @default(uuid())
+  material_type MaterialType
+  quantity      Float
+  unit          String
+  unit_cost     Float
+  total_cost    Float
+  supplierId    String?
+  supplier      Supplier?    @relation(fields: [supplierId], references: [id])
+  date          DateTime
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model RawMaterialConsumption {
+  id                String           @id @default(uuid())
+  material_type     MaterialType
+  quantity_used     Float
+  date              DateTime
+  notes             String?
+  productionBatchId String?
+  productionBatch   ProductionBatch? @relation(fields: [productionBatchId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model StockThreshold {
+  id            String       @id @default(uuid())
+  material_type MaterialType @unique
+  threshold     Float
+  unit          String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model FinishedGoodsStock {
+  id            String       @id @default(uuid())
+  brick_type    BrickType
+  custom_name   String?
+  quality_grade QualityGrade
+  quantity      Int
+  source        String       @default("PRODUCTION")
+  notes         String?
+  date          DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model StockReconciliation {
+  id            String   @id @default(uuid())
+  date          DateTime @default(now())
+  reconciled_by String
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items StockReconciliationItem[]
+}
+
+model StockReconciliationItem {
+  id                String              @id @default(uuid())
+  reconciliation    StockReconciliation @relation(fields: [reconciliationId], references: [id])
+  reconciliationId  String
+  item_type         String
+  material_type     String?
+  brick_type        String?
+  quality_grade     String?
+  system_quantity   Float
+  physical_quantity Float
+  variance          Float
+  notes             String?
+  createdAt         DateTime            @default(now())
+}
+
+model PriceCatalogue {
+  id         String    @id @default(uuid())
+  brick_type BrickType @unique
+  unit_price Float     @default(0)
+  is_active  Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Customer {
+  id                   String       @id @default(uuid())
+  customer_type        CustomerType
+  full_name            String?
+  phone                String?
+  company_name         String?
+  tin_number           String?
+  contact_person_name  String?
+  contact_person_phone String?
+  location             String?
+  notes                String?
+  credit_limit         Float        @default(0)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime?
+
+  orders           Order[]
+  proformaInvoices ProformaInvoice[]
+}
+
+model Order {
+  id                     String       @id @default(uuid())
+  customer               Customer     @relation(fields: [customerId], references: [id])
+  customerId             String
+  brick_type             BrickType
+  custom_name            String?
+  quality_grade          QualityGrade
+  quantity               Int
+  unit_price             Float
+  total_amount           Float
+  order_date             DateTime     @default(now())
+  required_delivery_date DateTime?
+  status                 OrderStatus  @default(PENDING)
+  notes                  String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  deletedAt              DateTime?
+
+  proformaInvoices ProformaInvoice[]
+  invoices         Invoice[]
+  deliveries       Delivery[]
+}
+
+model CompanySettings {
+  id                      String   @id @default("singleton")
+  tin                     String   @default("")
+  bank_name               String   @default("")
+  bank_account            String   @default("")
+  phone                   String   @default("")
+  email                   String   @default("")
+  address                 String   @default("")
+  director_name           String   @default("")
+  director_title          String   @default("")
+  default_payment_terms   String   @default("")
+  default_delivery_period String   @default("")
+  overdue_grace_days      Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model ProformaInvoice {
+  id              String   @id @default(uuid())
+  number          String   @unique
+  customer        Customer @relation(fields: [customerId], references: [id])
+  customerId      String
+  order           Order?   @relation(fields: [orderId], references: [id])
+  orderId         String?
+  brick_type      String?
+  custom_name     String?
+  quantity        Int?
+  unit_price      Float?
+  date_issued     DateTime @default(now())
+  valid_until     DateTime
+  subtotal        Float
+  total           Float
+  notes           String?
+  payment_terms   String?
+  delivery_period String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Invoice {
+  id         String    @id @default(uuid())
+  number     String    @unique
+  order      Order     @relation(fields: [orderId], references: [id])
+  orderId    String
+  date       DateTime  @default(now())
+  due_date   DateTime?
+  subtotal   Float
+  total      Float
+  is_overdue Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  items    InvoiceItem[]
+  payments Payment[]
+}
+
+model InvoiceItem {
+  id            String       @id @default(uuid())
+  invoice       Invoice      @relation(fields: [invoiceId], references: [id])
+  invoiceId     String
+  description   String
+  brick_type    BrickType
+  quality_grade QualityGrade
+  quantity      Int
+  unit_price    Float
+  total         Float
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id])
+  invoiceId String
+  amount    Float
+  date      DateTime      @default(now())
+  method    PaymentMethod
+  reference String?
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Delivery {
+  id                   String         @id @default(uuid())
+  order                Order          @relation(fields: [orderId], references: [id])
+  orderId              String
+  vehicle_plate        String?
+  driver_name          String?
+  scheduled_date       DateTime?
+  actual_delivery_date DateTime?
+  quantity_loaded      Int            @default(0)
+  status               DeliveryStatus @default(SCHEDULED)
+  receiver_name        String?
+  damage_qty           Int            @default(0)
+  damage_notes         String?
+  notes                String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  costs DeliveryCost[]
+}
+
+model DeliveryCost {
+  id               String   @id @default(uuid())
+  delivery         Delivery @relation(fields: [deliveryId], references: [id])
+  deliveryId       String
+  fuel_cost        Float    @default(0)
+  driver_fee       Float    @default(0)
+  hired_truck_cost Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model ExpenseCategoryConfig {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  is_active  Boolean  @default(true)
+  sort_order Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  category    String   @default("OTHER")
+  amount      Float
+  date        DateTime
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user_id     String?
+  user_name   String?
+  action      String
+  resource    String
+  resource_id String?
+  old_values  Json?
+  new_values  Json?
+  ip_address  String?
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  user_id     String?
+  type        String
+  title       String
+  message     String
+  is_read     Boolean  @default(false)
+  resource    String?
+  resource_id String?
+  createdAt   DateTime @default(now())
+}
