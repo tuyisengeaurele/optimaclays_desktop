@@ -6,13 +6,17 @@ Design spec: `docs/superpowers/specs/2026-07-23-electron-desktop-migration-desig
 
 ## Status
 
-Phase 5 of 6: splash screen and polish. The app now shows a splash window
-with the company logo while the main window loads, closing the moment
-it's ready. The sidebar has a tighter, more native look with a refined
-active-page indicator and a small pinned-shortcuts row so people can keep
-their most-used pages one click away. Swept the codebase for AI-tell
-writing patterns per the project's standing style rule. Verified with the
-full Playwright suite against the real packaged app.
+Phase 6 of 6: security hardening and packaging. Done. Every window
+(main, splash, print) runs with contextIsolation, sandbox, and
+nodeIntegration locked down, and the app never opens or navigates to
+anything external. The audit log redacts password fields instead of
+storing them in the clear. A fresh install now creates its own SQLite
+database, applies the bundled migrations, and seeds the admin account
+on first launch, since there's no prisma CLI available outside a dev
+checkout. The app has a real icon generated from the company logo, and
+`npm run build:win` produces a working NSIS installer that's been
+smoke-tested end to end on a clean machine profile: install, first
+launch, log in, done.
 
 ## Development
 

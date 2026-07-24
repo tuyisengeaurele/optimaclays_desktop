@@ -6,10 +6,22 @@ directories:
 files:
   - out/**/*
   - package.json
-asarUnpack:
-  - '**/*.node'
+# electron-builder's file-selection silently drops node_modules/.prisma no
+# matter how it's spelled in a files/asarUnpack pattern, and that folder holds
+# the actual generated client @prisma/client needs at runtime. asar disabled
+# so it can be dropped in as a plain extraResource, sibling to @prisma/client
+# on a real filesystem where Node's own module resolution finds it naturally.
+asar: false
+extraResources:
+  - from: logo.png
+    to: logo.png
+  - from: prisma/migrations
+    to: migrations
+  - from: node_modules/.prisma
+    to: app/node_modules/.prisma
 win:
   target: nsis
+  icon: build/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

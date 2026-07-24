@@ -1,9 +1,14 @@
+import { readFileSync } from 'fs'
 import { BrowserWindow } from 'electron'
-import { pathToFileURL } from 'url'
 import { LOGO_PATH } from './ipc/logoPath'
 
 function splashHtml(): string {
-  const logoUrl = pathToFileURL(LOGO_PATH).toString()
+  // The splash page loads via a data: URL, which gets an opaque origin - a
+  // file:// image reference gets blocked as a local-resource load from a
+  // non-file origin, so the logo is inlined as base64 instead, the same way
+  // the payslip/proforma/waybill templates already embed it.
+  const logoBase64 = readFileSync(LOGO_PATH).toString('base64')
+  const logoUrl = `data:image/png;base64,${logoBase64}`
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -71,6 +76,9 @@ export function createSplashWindow(): BrowserWindow {
       sandbox: true
     }
   })
+
+  splash.webContents.on('will-navigate', (event) => event.preventDefault())
+  splash.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
   splash.once('ready-to-show', () => splash.show())
   splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml())}`)
