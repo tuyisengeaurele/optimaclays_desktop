@@ -1,10 +1,26 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { writeFileSync } from 'fs'
+import { app, BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'path'
 import { registerAllHandlers } from './ipc/registerAll'
 import { createSplashWindow } from './splash'
+import { initializeDatabase } from './migrate'
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
+
+function logFatalError(source: string, error: unknown): void {
+  const details = error instanceof Error ? (error.stack ?? error.message) : String(error)
+  const line = `${new Date().toISOString()} [${source}]\n${details}\n`
+  try {
+    writeFileSync(join(app.getPath('userData'), 'startup-error.log'), line, { flag: 'a' })
+  } catch {
+    // Best effort - if userData itself isn't writable, the dialog is all that's left.
+  }
+  dialog.showErrorBox('Optima Clays failed to start', `${source}:\n\n${details}`)
+}
+
+process.on('uncaughtException', (error) => logFatalError('uncaughtException', error))
+process.on('unhandledRejection', (error) => logFatalError('unhandledRejection', error))
 
 function createMainWindow(): void {
   mainWindow = new BrowserWindow({
@@ -45,8 +61,23 @@ function createMainWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   splashWindow = createSplashWindow()
+
+  // Dev mode uses its own migrate/seed npm scripts against prisma/dev.db via
+  // the real prisma CLI, which isn't bundled into a packaged build. A fresh
+  // install has no userData database at all, so the packaged app applies its
+  // own bundled migrations and seeds the admin account on first launch.
+  if (app.isPackaged) {
+    try {
+      await initializeDatabase()
+    } catch (error) {
+      logFatalError('The local database could not be prepared', error)
+      app.quit()
+      return
+    }
+  }
+
   registerAllHandlers()
   createMainWindow()
 
