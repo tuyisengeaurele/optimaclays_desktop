@@ -131,7 +131,8 @@ export function registerOrderHandlers(): void {
         },
         include: { customer: true }
       })
-    }
+    },
+    { resource: 'order', action: 'CREATE' }
   )
 
   handle<GetOrderPayload, OrderWithFullDetail>('orders:get', null, async ({ id }) => {
@@ -174,29 +175,40 @@ export function registerOrderHandlers(): void {
         },
         include: { customer: true }
       })
-    }
+    },
+    { resource: 'order', action: 'UPDATE' }
   )
 
-  handle<DeleteOrderPayload, { deleted: boolean }>('orders:delete', ['ADMIN'], async ({ id }) => {
-    const order = await prisma.order.findFirst({ where: { id, deletedAt: null } })
-    if (!order) throw new NotFoundError('Order not found')
-    await prisma.order.update({ where: { id }, data: { deletedAt: new Date() } })
-    return { deleted: true }
-  })
+  handle<DeleteOrderPayload, { deleted: boolean }>(
+    'orders:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const order = await prisma.order.findFirst({ where: { id, deletedAt: null } })
+      if (!order) throw new NotFoundError('Order not found')
+      await prisma.order.update({ where: { id }, data: { deletedAt: new Date() } })
+      return { deleted: true }
+    },
+    { resource: 'order', action: 'DELETE' }
+  )
 
-  handle<UpdateOrderStatusPayload, OrderWithCustomer>('orders:updateStatus', null, async ({ id, status, notes }) => {
-    const order = await prisma.order.findFirst({ where: { id, deletedAt: null } })
-    if (!order) throw new NotFoundError('Order not found')
-    if (!status) throw new BadRequestError('status is required')
-    // DELIVERED is only ever set from the delivery completion flow, which has its own
-    // record of what was actually delivered, not from a manual status change here.
-    if (status === 'DELIVERED') throw new BadRequestError('Delivered status is set automatically when a delivery is completed')
-    return prisma.order.update({
-      where: { id },
-      data: { status, ...(notes !== undefined ? { notes } : {}) },
-      include: { customer: true }
-    })
-  })
+  handle<UpdateOrderStatusPayload, OrderWithCustomer>(
+    'orders:updateStatus',
+    null,
+    async ({ id, status, notes }) => {
+      const order = await prisma.order.findFirst({ where: { id, deletedAt: null } })
+      if (!order) throw new NotFoundError('Order not found')
+      if (!status) throw new BadRequestError('status is required')
+      // DELIVERED is only ever set from the delivery completion flow, which has its own
+      // record of what was actually delivered, not from a manual status change here.
+      if (status === 'DELIVERED') throw new BadRequestError('Delivered status is set automatically when a delivery is completed')
+      return prisma.order.update({
+        where: { id },
+        data: { status, ...(notes !== undefined ? { notes } : {}) },
+        include: { customer: true }
+      })
+    },
+    { resource: 'order', action: 'UPDATE' }
+  )
 
   handle<CustomerStatementPayload, CustomerStatementResult>('orders:customerStatement', null, async ({ customerId }) => {
     const customer = await prisma.customer.findFirst({ where: { id: customerId, deletedAt: null } })

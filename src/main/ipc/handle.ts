@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { getSession } from './session'
 import { AppError, AuthError, ForbiddenError } from './errors'
 import type { IpcResult, Role, SessionInfo } from './types'
+import { writeAuditLog, type AuditDescriptor } from './writeAuditLog'
 
 interface Envelope<TPayload> {
   token: string | null
@@ -24,14 +25,17 @@ async function run<TResult>(channel: string, fn: () => Promise<TResult>): Promis
 export function handle<TPayload, TResult>(
   channel: string,
   allowedRoles: Role[] | null,
-  fn: (payload: TPayload, session: SessionInfo) => Promise<TResult>
+  fn: (payload: TPayload, session: SessionInfo) => Promise<TResult>,
+  audit?: AuditDescriptor
 ): void {
   ipcMain.handle(channel, (_event, envelope: Envelope<TPayload>) =>
     run(channel, async () => {
       const session = getSession(envelope?.token)
       if (!session) throw new AuthError()
       if (allowedRoles && !allowedRoles.includes(session.role)) throw new ForbiddenError()
-      return fn(envelope.payload, session)
+      const result = await fn(envelope.payload, session)
+      if (audit) await writeAuditLog(session, audit, envelope.payload, result)
+      return result
     })
   )
 }

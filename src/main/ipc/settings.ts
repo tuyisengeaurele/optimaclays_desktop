@@ -101,7 +101,8 @@ export function registerSettingsHandlers(): void {
           overdue_grace_days: overdue_grace_days != null ? Number(overdue_grace_days) : undefined
         }
       })
-    }
+    },
+    { resource: 'settings', action: 'UPDATE' }
   )
 
   handle<void, PinnedKpisResult>('settings:getPinnedKpis', null, async (_payload, session) => {
@@ -109,9 +110,14 @@ export function registerSettingsHandlers(): void {
     return { pinned_kpis }
   })
 
-  handle<UpdatePinnedKpisPayload, PinnedKpisResult>('settings:updatePinnedKpis', null, async ({ pinned_kpis }, session) => {
-    if (!Array.isArray(pinned_kpis)) throw new BadRequestError('pinned_kpis must be an array')
-    const updated = await setPinnedKpis(session.userId, pinned_kpis as string[])
-    return { pinned_kpis: updated }
-  })
+  handle<UpdatePinnedKpisPayload, PinnedKpisResult>(
+    'settings:updatePinnedKpis',
+    null,
+    async ({ pinned_kpis }, session) => {
+      if (!Array.isArray(pinned_kpis)) throw new BadRequestError('pinned_kpis must be an array')
+      const updated = await setPinnedKpis(session.userId, pinned_kpis as string[])
+      return { pinned_kpis: updated }
+    },
+    { resource: 'settings', action: 'UPDATE' }
+  )
 }

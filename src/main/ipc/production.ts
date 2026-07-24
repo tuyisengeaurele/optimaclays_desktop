@@ -224,7 +224,8 @@ export function registerProductionHandlers(): void {
         return { batch: created, savedDefectTypes: defects }
       })
       return { ...batch, defectTypes: savedDefectTypes }
-    }
+    },
+    { resource: 'production', action: 'CREATE' }
   )
 
   // Updates the batch while it is still in progress: date, shift, kiln, target and stage
@@ -269,7 +270,8 @@ export function registerProductionHandlers(): void {
       })
 
       return { ...updated, defectTypes: savedDefectTypes }
-    }
+    },
+    { resource: 'production', action: 'UPDATE' }
   )
 
   // Marks a batch complete: records what actually came out of the kiln and moves the
@@ -353,13 +355,19 @@ export function registerProductionHandlers(): void {
       })
 
       return { ...updated, defectTypes: savedDefectTypes }
-    }
+    },
+    { resource: 'production', action: 'UPDATE' }
   )
 
-  handle<DeleteBatchPayload, { deleted: boolean }>('production:delete', ['ADMIN', 'PRODUCTION_SUPERVISOR'], async ({ id }) => {
-    const batch = await prisma.productionBatch.findFirst({ where: { id, deletedAt: null } })
-    if (!batch) throw new NotFoundError('Production batch not found')
-    await prisma.productionBatch.update({ where: { id }, data: { deletedAt: new Date() } })
-    return { deleted: true }
-  })
+  handle<DeleteBatchPayload, { deleted: boolean }>(
+    'production:delete',
+    ['ADMIN', 'PRODUCTION_SUPERVISOR'],
+    async ({ id }) => {
+      const batch = await prisma.productionBatch.findFirst({ where: { id, deletedAt: null } })
+      if (!batch) throw new NotFoundError('Production batch not found')
+      await prisma.productionBatch.update({ where: { id }, data: { deletedAt: new Date() } })
+      return { deleted: true }
+    },
+    { resource: 'production', action: 'DELETE' }
+  )
 }

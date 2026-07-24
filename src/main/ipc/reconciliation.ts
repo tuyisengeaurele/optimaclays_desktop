@@ -67,6 +67,7 @@ export function registerReconciliationHandlers(): void {
         },
         include: { items: true }
       })
-    }
+    },
+    { resource: 'reconciliation', action: 'CREATE' }
   )
 }

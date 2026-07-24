@@ -31,25 +31,35 @@ export function registerExpenseHandlers(): void {
     return prisma.expense.findMany({ where, orderBy: { date: 'desc' } })
   })
 
-  handle<CreateExpensePayload, Expense>('expenses:create', null, async ({ category, amount, date, description }) => {
-    if (!category?.trim()) throw new BadRequestError('category is required')
-    if (amount == null || isNaN(Number(amount)) || Number(amount) <= 0) throw new BadRequestError('amount must be a positive number')
-    if (!date) throw new BadRequestError('date is required')
+  handle<CreateExpensePayload, Expense>(
+    'expenses:create',
+    null,
+    async ({ category, amount, date, description }) => {
+      if (!category?.trim()) throw new BadRequestError('category is required')
+      if (amount == null || isNaN(Number(amount)) || Number(amount) <= 0) throw new BadRequestError('amount must be a positive number')
+      if (!date) throw new BadRequestError('date is required')
 
-    return prisma.expense.create({
-      data: {
-        category: category.trim(),
-        amount: Number(amount),
-        date: new Date(date),
-        description: description || null
-      }
-    })
-  })
+      return prisma.expense.create({
+        data: {
+          category: category.trim(),
+          amount: Number(amount),
+          date: new Date(date),
+          description: description || null
+        }
+      })
+    },
+    { resource: 'expense', action: 'CREATE' }
+  )
 
-  handle<DeleteExpensePayload, { deleted: boolean }>('expenses:delete', ['ADMIN', 'ACCOUNTANT'], async ({ id }) => {
-    const expense = await prisma.expense.findUnique({ where: { id } })
-    if (!expense) throw new NotFoundError('Expense not found')
-    await prisma.expense.delete({ where: { id } })
-    return { deleted: true }
-  })
+  handle<DeleteExpensePayload, { deleted: boolean }>(
+    'expenses:delete',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ id }) => {
+      const expense = await prisma.expense.findUnique({ where: { id } })
+      if (!expense) throw new NotFoundError('Expense not found')
+      await prisma.expense.delete({ where: { id } })
+      return { deleted: true }
+    },
+    { resource: 'expense', action: 'DELETE' }
+  )
 }

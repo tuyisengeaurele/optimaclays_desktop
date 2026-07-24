@@ -118,7 +118,8 @@ export function registerAttendanceHandlers(): void {
         create: { employeeId, date: new Date(date), status, notes, wage_earned: wage },
         include: { employee: true }
       })
-    }
+    },
+    { resource: 'attendance', action: 'CREATE' }
   )
 
   handle<UpdateAttendancePayload, AttendanceLog & { employee: Employee }>(
@@ -135,7 +136,8 @@ export function registerAttendanceHandlers(): void {
         data: { status, notes, wage_earned: wage },
         include: { employee: true }
       })
-    }
+    },
+    { resource: 'attendance', action: 'UPDATE' }
   )
 
   handle<MonthlySummaryPayload, MonthlySummary>('attendance:summary', null, async ({ employeeId, month, year }) => {

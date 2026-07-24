@@ -75,7 +75,8 @@ export function registerSupplierHandlers(): void {
         return { supplier: created, savedMaterialTypes: types }
       })
       return { ...supplier, materialTypes: savedMaterialTypes }
-    }
+    },
+    { resource: 'supplier', action: 'CREATE' }
   )
 
   handle<UpdateSupplierPayload, SupplierResult>(
@@ -102,13 +103,19 @@ export function registerSupplierHandlers(): void {
       })
 
       return { ...updated, materialTypes: savedMaterialTypes }
-    }
+    },
+    { resource: 'supplier', action: 'UPDATE' }
   )
 
-  handle<DeleteSupplierPayload, { deleted: boolean }>('suppliers:delete', ['ADMIN'], async ({ id }) => {
-    const supplier = await prisma.supplier.findFirst({ where: { id, deletedAt: null } })
-    if (!supplier) throw new NotFoundError('Supplier not found')
-    await prisma.supplier.update({ where: { id }, data: { deletedAt: new Date() } })
-    return { deleted: true }
-  })
+  handle<DeleteSupplierPayload, { deleted: boolean }>(
+    'suppliers:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const supplier = await prisma.supplier.findFirst({ where: { id, deletedAt: null } })
+      if (!supplier) throw new NotFoundError('Supplier not found')
+      await prisma.supplier.update({ where: { id }, data: { deletedAt: new Date() } })
+      return { deleted: true }
+    },
+    { resource: 'supplier', action: 'DELETE' }
+  )
 }
