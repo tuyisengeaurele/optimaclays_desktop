@@ -1,12 +1,9 @@
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
+import { launchApp } from './helpers'
 
 test('main window boots to the login page for an unauthenticated user', async () => {
-  const app = await electron.launch({
-    args: [path.join(__dirname, '..', 'out', 'main', 'index.js')]
-  })
+  const { app, window } = await launchApp()
   try {
-    const window = await app.firstWindow()
     await window.waitForSelector('h1')
     const heading = await window.textContent('h1')
     expect(heading).toBe('OPTIMA CLAYS LTD')

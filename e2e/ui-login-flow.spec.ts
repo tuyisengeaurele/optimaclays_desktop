@@ -1,12 +1,11 @@
-import { test, expect, _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
-import path from 'path'
+import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
+import { launchApp } from './helpers'
 
 let app: ElectronApplication
 let window: Page
 
 test.beforeAll(async () => {
-  app = await electron.launch({ args: [path.join(__dirname, '..', 'out', 'main', 'index.js')] })
-  window = await app.firstWindow()
+  ;({ app, window } = await launchApp())
   await window.waitForSelector('input[type="email"]')
 })
 

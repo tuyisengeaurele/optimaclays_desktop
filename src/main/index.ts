@@ -1,8 +1,10 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerAllHandlers } from './ipc/registerAll'
+import { createSplashWindow } from './splash'
 
 let mainWindow: BrowserWindow | null = null
+let splashWindow: BrowserWindow | null = null
 
 function createMainWindow(): void {
   mainWindow = new BrowserWindow({
@@ -19,6 +21,8 @@ function createMainWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    splashWindow?.close()
+    splashWindow = null
     mainWindow?.show()
   })
 
@@ -42,6 +46,7 @@ function createMainWindow(): void {
 }
 
 app.whenReady().then(() => {
+  splashWindow = createSplashWindow()
   registerAllHandlers()
   createMainWindow()
 

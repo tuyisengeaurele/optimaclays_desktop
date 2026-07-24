@@ -1,6 +1,6 @@
-import { test, expect, _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
-import path from 'path'
+import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
 import { PrismaClient } from '@prisma/client'
+import { launchApp } from './helpers'
 
 const prisma = new PrismaClient()
 
@@ -24,8 +24,7 @@ interface AuditLogDto {
 }
 
 test.beforeAll(async () => {
-  app = await electron.launch({ args: [path.join(__dirname, '..', 'out', 'main', 'index.js')] })
-  window = await app.firstWindow()
+  ;({ app, window } = await launchApp())
   await window.waitForSelector('h1')
 
   const login = await invokePublic<{ token: string; user: { id: string } }>('auth:login', {
