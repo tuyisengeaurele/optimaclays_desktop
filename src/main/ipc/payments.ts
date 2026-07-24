@@ -52,7 +52,7 @@ export function registerPaymentHandlers(): void {
       const isOverdue = computeIsOverdue(invoice, newTotalPaid)
 
       // Recording the payment and refreshing the invoice's overdue flag must succeed or
-      // fail together — otherwise a payment could be recorded while the invoice's stored
+      // fail together, otherwise a payment could be recorded while the invoice's stored
       // is_overdue flag silently drifts out of sync.
       return prisma.$transaction(async (tx) => {
         const payment = await tx.payment.create({

@@ -66,7 +66,7 @@ async function buildWaybillHtml(id: string): Promise<{ html: string; number: str
   try {
     logoBase64 = fs.readFileSync(LOGO_PATH).toString('base64')
   } catch {
-    // logo not found — continue without it
+    // logo not found, continue without it
   }
 
   const order = delivery.order
@@ -234,7 +234,7 @@ export function registerDeliveryHandlers(): void {
 
       const wasDelivered = delivery.status !== 'DELIVERED' && status === 'DELIVERED'
 
-      // Updating the delivery record and — when it just transitioned to DELIVERED —
+      // Updating the delivery record, and, when it just transitioned to DELIVERED,
       // decrementing finished-goods stock and marking the order DELIVERED are one
       // logical unit of work, so they all commit or all roll back together.
       return prisma.$transaction(async (tx) => {
@@ -309,7 +309,7 @@ export function registerDeliveryHandlers(): void {
       const delivery = await prisma.delivery.findUnique({ where: { id } })
       if (!delivery) throw new NotFoundError('Delivery not found')
       // Costs is a child row with no cascade delete configured on the schema, so it is
-      // removed first, then the delivery — both in one transaction.
+      // removed first, then the delivery, both in one transaction.
       await prisma.$transaction(async (tx) => {
         await tx.deliveryCost.deleteMany({ where: { deliveryId: id } })
         await tx.delivery.delete({ where: { id } })

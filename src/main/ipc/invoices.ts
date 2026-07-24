@@ -35,7 +35,7 @@ export function registerInvoiceHandlers(): void {
     return invoices.map((inv) => {
       const paid = inv.payments.reduce((s, p) => s + p.amount, 0)
       const balance = inv.total - paid
-      // Always compute is_overdue dynamically — don't rely on the stored flag
+      // Always compute is_overdue dynamically, don't rely on the stored flag
       const is_overdue = computeIsOverdue(inv, paid)
       return { ...inv, paid, balance, is_overdue }
     })
@@ -57,7 +57,7 @@ export function registerInvoiceHandlers(): void {
       if (existingInvoice) throw new BadRequestError(`This order was already invoiced as ${existingInvoice.number}`)
 
       const year = new Date().getFullYear()
-      // Use a transaction so count + create are atomic — prevents duplicate numbers under concurrent calls
+      // Use a transaction so count + create are atomic, prevents duplicate numbers under concurrent calls
       return prisma.$transaction(async (tx) => {
         const count = await tx.invoice.count({ where: { number: { startsWith: `OCL-${year}-` } } })
         const number = `OCL-${year}-${String(count + 1).padStart(3, '0')}`
@@ -106,7 +106,7 @@ export function registerInvoiceHandlers(): void {
       const invoice = await prisma.invoice.findUnique({ where: { id } })
       if (!invoice) throw new NotFoundError('Invoice not found')
       // Payments and items are child rows with no cascade delete configured on the schema,
-      // so they are removed first, then the invoice — all in one transaction so a failure
+      // so they are removed first, then the invoice, all in one transaction so a failure
       // partway through never leaves an orphaned payment/item behind.
       await prisma.$transaction(async (tx) => {
         await tx.payment.deleteMany({ where: { invoiceId: id } })
