@@ -5,7 +5,7 @@ import { registerAllHandlers } from './ipc/registerAll'
 import { createSplashWindow } from './splash'
 import { initializeDatabase } from './migrate'
 
-const SPLASH_MIN_VISIBLE_MS = 1500
+const SPLASH_MIN_VISIBLE_MS = 3700
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
@@ -69,7 +69,13 @@ function createMainWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  splashWindow = createSplashWindow()
+  const splash = createSplashWindow()
+  splashWindow = splash.window
+  // Wait for the splash to actually paint before starting the minimum-
+  // visible timer - if the main window happened to be ready before the
+  // splash's own ready-to-show fired, it would otherwise get closed before
+  // it was ever shown at all.
+  await splash.shown
   splashShownAt = Date.now()
 
   // Dev mode uses its own migrate/seed npm scripts against prisma/dev.db via
