@@ -406,77 +406,82 @@ export function registerProformaHandlers(): void {
     })
   )
 
-  handle<CreateProformaPayload, ProformaWithDetail>('proformas:create', null, async (payload) => {
-    const { orderId } = payload
-    let { customerId, brick_type, custom_name, quantity, unit_price, valid_until, payment_terms, delivery_period } = payload
-    const { notes } = payload
+  handle<CreateProformaPayload, ProformaWithDetail>(
+    'proformas:create',
+    null,
+    async (payload) => {
+      const { orderId } = payload
+      let { customerId, brick_type, custom_name, quantity, unit_price, valid_until, payment_terms, delivery_period } = payload
+      const { notes } = payload
 
-    // Generating a proforma from an existing order (the Orders page "PRO" action) only
-    // sends orderId, relying on the order's own fields rather than asking the caller to
-    // repeat them.
-    if (orderId) {
-      const order = await prisma.order.findFirst({ where: { id: orderId, deletedAt: null } })
-      if (!order) throw new NotFoundError('Order not found')
-      customerId = customerId ?? order.customerId
-      brick_type = brick_type ?? order.brick_type
-      custom_name = custom_name ?? order.custom_name
-      quantity = quantity ?? order.quantity
-      unit_price = unit_price ?? order.unit_price
-    }
-
-    if (!customerId) throw new BadRequestError('Customer is required')
-    if (!brick_type) throw new BadRequestError('Brick type is required')
-    if (!quantity) throw new BadRequestError('Quantity is required')
-    if (!unit_price) throw new BadRequestError('Unit price is required')
-
-    const customer = await prisma.customer.findUnique({ where: { id: customerId } })
-    if (!customer) throw new NotFoundError('Customer not found')
-
-    const qty = Number(quantity)
-    const price = Number(unit_price)
-    const subtotal = qty * price
-
-    const year = new Date().getFullYear()
-    const dateIssued = new Date()
-    const validUntil = valid_until ? new Date(valid_until) : new Date(dateIssued.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-    // Fetch default terms from company settings if caller did not supply them
-    let resolvedPaymentTerms = payment_terms || null
-    let resolvedDeliveryPeriod = delivery_period || null
-    if (!resolvedPaymentTerms || !resolvedDeliveryPeriod) {
-      const settings = await prisma.companySettings.findUnique({ where: { id: 'singleton' } })
-      if (settings) {
-        if (!resolvedPaymentTerms) resolvedPaymentTerms = settings.default_payment_terms || null
-        if (!resolvedDeliveryPeriod) resolvedDeliveryPeriod = settings.default_delivery_period || null
+      // Generating a proforma from an existing order (the Orders page "PRO" action) only
+      // sends orderId, relying on the order's own fields rather than asking the caller to
+      // repeat them.
+      if (orderId) {
+        const order = await prisma.order.findFirst({ where: { id: orderId, deletedAt: null } })
+        if (!order) throw new NotFoundError('Order not found')
+        customerId = customerId ?? order.customerId
+        brick_type = brick_type ?? order.brick_type
+        custom_name = custom_name ?? order.custom_name
+        quantity = quantity ?? order.quantity
+        unit_price = unit_price ?? order.unit_price
       }
-    }
 
-    // Transaction so the running count + create stay atomic — prevents duplicate
-    // proforma numbers under concurrent calls.
-    return prisma.$transaction(async (tx) => {
-      const count = await tx.proformaInvoice.count({ where: { number: { startsWith: `PRO-${year}-` } } })
-      const number = getNextProformaNumber(year, count)
-      return tx.proformaInvoice.create({
-        data: {
-          number,
-          customerId: customerId as string,
-          orderId: orderId || null,
-          brick_type,
-          custom_name: custom_name || null,
-          quantity: qty,
-          unit_price: price,
-          date_issued: dateIssued,
-          valid_until: validUntil,
-          subtotal,
-          total: subtotal,
-          notes: notes || null,
-          payment_terms: resolvedPaymentTerms,
-          delivery_period: resolvedDeliveryPeriod
-        },
-        include: { customer: true, order: true }
+      if (!customerId) throw new BadRequestError('Customer is required')
+      if (!brick_type) throw new BadRequestError('Brick type is required')
+      if (!quantity) throw new BadRequestError('Quantity is required')
+      if (!unit_price) throw new BadRequestError('Unit price is required')
+
+      const customer = await prisma.customer.findUnique({ where: { id: customerId } })
+      if (!customer) throw new NotFoundError('Customer not found')
+
+      const qty = Number(quantity)
+      const price = Number(unit_price)
+      const subtotal = qty * price
+
+      const year = new Date().getFullYear()
+      const dateIssued = new Date()
+      const validUntil = valid_until ? new Date(valid_until) : new Date(dateIssued.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+      // Fetch default terms from company settings if caller did not supply them
+      let resolvedPaymentTerms = payment_terms || null
+      let resolvedDeliveryPeriod = delivery_period || null
+      if (!resolvedPaymentTerms || !resolvedDeliveryPeriod) {
+        const settings = await prisma.companySettings.findUnique({ where: { id: 'singleton' } })
+        if (settings) {
+          if (!resolvedPaymentTerms) resolvedPaymentTerms = settings.default_payment_terms || null
+          if (!resolvedDeliveryPeriod) resolvedDeliveryPeriod = settings.default_delivery_period || null
+        }
+      }
+
+      // Transaction so the running count + create stay atomic — prevents duplicate
+      // proforma numbers under concurrent calls.
+      return prisma.$transaction(async (tx) => {
+        const count = await tx.proformaInvoice.count({ where: { number: { startsWith: `PRO-${year}-` } } })
+        const number = getNextProformaNumber(year, count)
+        return tx.proformaInvoice.create({
+          data: {
+            number,
+            customerId: customerId as string,
+            orderId: orderId || null,
+            brick_type,
+            custom_name: custom_name || null,
+            quantity: qty,
+            unit_price: price,
+            date_issued: dateIssued,
+            valid_until: validUntil,
+            subtotal,
+            total: subtotal,
+            notes: notes || null,
+            payment_terms: resolvedPaymentTerms,
+            delivery_period: resolvedDeliveryPeriod
+          },
+          include: { customer: true, order: true }
+        })
       })
-    })
-  })
+    },
+    { resource: 'proforma', action: 'CREATE' }
+  )
 
   handle<GetProformaPayload, ProformaWithDetail>('proformas:get', null, async ({ id }) => {
     const proforma = await prisma.proformaInvoice.findUnique({
@@ -493,10 +498,15 @@ export function registerProformaHandlers(): void {
     return { html: doc.html, filename: `Proforma-${doc.number}.pdf` }
   })
 
-  handle<DeleteProformaPayload, { deleted: boolean }>('proformas:delete', ['ADMIN'], async ({ id }) => {
-    const proforma = await prisma.proformaInvoice.findUnique({ where: { id } })
-    if (!proforma) throw new NotFoundError('Proforma invoice not found')
-    await prisma.proformaInvoice.delete({ where: { id } })
-    return { deleted: true }
-  })
+  handle<DeleteProformaPayload, { deleted: boolean }>(
+    'proformas:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const proforma = await prisma.proformaInvoice.findUnique({ where: { id } })
+      if (!proforma) throw new NotFoundError('Proforma invoice not found')
+      await prisma.proformaInvoice.delete({ where: { id } })
+      return { deleted: true }
+    },
+    { resource: 'proforma', action: 'DELETE' }
+  )
 }

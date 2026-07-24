@@ -72,7 +72,8 @@ export function registerEmployeeHandlers(): void {
           is_active: true
         }
       })
-    }
+    },
+    { resource: 'employee', action: 'CREATE' }
   )
 
   handle<UpdateEmployeePayload, Employee>(
@@ -96,16 +97,22 @@ export function registerEmployeeHandlers(): void {
           is_active: is_active !== undefined ? is_active : employee.is_active
         }
       })
-    }
+    },
+    { resource: 'employee', action: 'UPDATE' }
   )
 
-  handle<DeleteEmployeePayload, null>('employees:delete', ['ADMIN'], async ({ id }) => {
-    const employee = await prisma.employee.findFirst({ where: { id, deletedAt: null } })
-    if (!employee) throw new NotFoundError('Employee not found')
-    await prisma.employee.update({
-      where: { id },
-      data: { deletedAt: new Date(), is_active: false }
-    })
-    return null
-  })
+  handle<DeleteEmployeePayload, null>(
+    'employees:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const employee = await prisma.employee.findFirst({ where: { id, deletedAt: null } })
+      if (!employee) throw new NotFoundError('Employee not found')
+      await prisma.employee.update({
+        where: { id },
+        data: { deletedAt: new Date(), is_active: false }
+      })
+      return null
+    },
+    { resource: 'employee', action: 'DELETE' }
+  )
 }

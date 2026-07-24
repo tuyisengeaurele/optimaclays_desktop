@@ -40,38 +40,53 @@ export function registerExpenseCategoryHandlers(): void {
     return categories
   })
 
-  handle<CreateCategoryPayload, ExpenseCategoryConfig>('expenseCategories:create', ['ADMIN', 'ACCOUNTANT'], async ({ name }) => {
-    if (!name?.trim()) throw new BadRequestError('name is required')
-    const exists = await prisma.expenseCategoryConfig.findUnique({ where: { name: name.trim() } })
-    if (exists) throw new BadRequestError('Category with this name already exists')
-    const maxOrder = await prisma.expenseCategoryConfig.aggregate({ _max: { sort_order: true } })
-    return prisma.expenseCategoryConfig.create({
-      data: { name: name.trim(), sort_order: (maxOrder._max.sort_order ?? -1) + 1 }
-    })
-  })
-
-  handle<UpdateCategoryPayload, ExpenseCategoryConfig>('expenseCategories:update', ['ADMIN', 'ACCOUNTANT'], async ({ id, name, is_active }) => {
-    const category = await prisma.expenseCategoryConfig.findUnique({ where: { id } })
-    if (!category) throw new NotFoundError('Category not found')
-    if (name?.trim()) {
-      const exists = await prisma.expenseCategoryConfig.findFirst({ where: { name: name.trim(), NOT: { id } } })
+  handle<CreateCategoryPayload, ExpenseCategoryConfig>(
+    'expenseCategories:create',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ name }) => {
+      if (!name?.trim()) throw new BadRequestError('name is required')
+      const exists = await prisma.expenseCategoryConfig.findUnique({ where: { name: name.trim() } })
       if (exists) throw new BadRequestError('Category with this name already exists')
-    }
-    return prisma.expenseCategoryConfig.update({
-      where: { id },
-      data: {
-        name: name?.trim() || undefined,
-        is_active: is_active !== undefined ? Boolean(is_active) : undefined
-      }
-    })
-  })
+      const maxOrder = await prisma.expenseCategoryConfig.aggregate({ _max: { sort_order: true } })
+      return prisma.expenseCategoryConfig.create({
+        data: { name: name.trim(), sort_order: (maxOrder._max.sort_order ?? -1) + 1 }
+      })
+    },
+    { resource: 'expense_category', action: 'CREATE' }
+  )
 
-  handle<DeleteCategoryPayload, { deleted: boolean }>('expenseCategories:delete', ['ADMIN'], async ({ id }) => {
-    const category = await prisma.expenseCategoryConfig.findUnique({ where: { id } })
-    if (!category) throw new NotFoundError('Category not found')
-    const inUse = await prisma.expense.count({ where: { category: category.name } })
-    if (inUse > 0) throw new BadRequestError(`Cannot delete: ${inUse} expense(s) use this category`)
-    await prisma.expenseCategoryConfig.delete({ where: { id } })
-    return { deleted: true }
-  })
+  handle<UpdateCategoryPayload, ExpenseCategoryConfig>(
+    'expenseCategories:update',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ id, name, is_active }) => {
+      const category = await prisma.expenseCategoryConfig.findUnique({ where: { id } })
+      if (!category) throw new NotFoundError('Category not found')
+      if (name?.trim()) {
+        const exists = await prisma.expenseCategoryConfig.findFirst({ where: { name: name.trim(), NOT: { id } } })
+        if (exists) throw new BadRequestError('Category with this name already exists')
+      }
+      return prisma.expenseCategoryConfig.update({
+        where: { id },
+        data: {
+          name: name?.trim() || undefined,
+          is_active: is_active !== undefined ? Boolean(is_active) : undefined
+        }
+      })
+    },
+    { resource: 'expense_category', action: 'UPDATE' }
+  )
+
+  handle<DeleteCategoryPayload, { deleted: boolean }>(
+    'expenseCategories:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const category = await prisma.expenseCategoryConfig.findUnique({ where: { id } })
+      if (!category) throw new NotFoundError('Category not found')
+      const inUse = await prisma.expense.count({ where: { category: category.name } })
+      if (inUse > 0) throw new BadRequestError(`Cannot delete: ${inUse} expense(s) use this category`)
+      await prisma.expenseCategoryConfig.delete({ where: { id } })
+      return { deleted: true }
+    },
+    { resource: 'expense_category', action: 'DELETE' }
+  )
 }

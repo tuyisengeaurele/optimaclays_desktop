@@ -81,7 +81,8 @@ export function registerCustomerHandlers(): void {
           credit_limit: credit_limit != null ? Number(credit_limit) : 0
         }
       })
-    }
+    },
+    { resource: 'customer', action: 'CREATE' }
   )
 
   handle<GetCustomerPayload, CustomerWithOrders>('customers:get', null, async ({ id }) => {
@@ -125,13 +126,19 @@ export function registerCustomerHandlers(): void {
           credit_limit: credit_limit != null ? Number(credit_limit) : customer.credit_limit
         }
       })
-    }
+    },
+    { resource: 'customer', action: 'UPDATE' }
   )
 
-  handle<DeleteCustomerPayload, { deleted: boolean }>('customers:delete', null, async ({ id }) => {
-    const customer = await prisma.customer.findFirst({ where: { id, deletedAt: null } })
-    if (!customer) throw new NotFoundError('Customer not found')
-    await prisma.customer.update({ where: { id }, data: { deletedAt: new Date() } })
-    return { deleted: true }
-  })
+  handle<DeleteCustomerPayload, { deleted: boolean }>(
+    'customers:delete',
+    null,
+    async ({ id }) => {
+      const customer = await prisma.customer.findFirst({ where: { id, deletedAt: null } })
+      if (!customer) throw new NotFoundError('Customer not found')
+      await prisma.customer.update({ where: { id }, data: { deletedAt: new Date() } })
+      return { deleted: true }
+    },
+    { resource: 'customer', action: 'DELETE' }
+  )
 }
