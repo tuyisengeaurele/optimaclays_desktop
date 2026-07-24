@@ -5,8 +5,11 @@ import { registerAllHandlers } from './ipc/registerAll'
 import { createSplashWindow } from './splash'
 import { initializeDatabase } from './migrate'
 
+const SPLASH_MIN_VISIBLE_MS = 1500
+
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
+let splashShownAt: number | null = null
 
 function logFatalError(source: string, error: unknown): void {
   const details = error instanceof Error ? (error.stack ?? error.message) : String(error)
@@ -37,9 +40,13 @@ function createMainWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    splashWindow?.close()
-    splashWindow = null
-    mainWindow?.show()
+    const elapsed = splashShownAt ? Date.now() - splashShownAt : SPLASH_MIN_VISIBLE_MS
+    const remaining = Math.max(0, SPLASH_MIN_VISIBLE_MS - elapsed)
+    setTimeout(() => {
+      splashWindow?.close()
+      splashWindow = null
+      mainWindow?.show()
+    }, remaining)
   })
 
   mainWindow.webContents.on('will-navigate', (event) => {
@@ -63,6 +70,7 @@ function createMainWindow(): void {
 
 app.whenReady().then(async () => {
   splashWindow = createSplashWindow()
+  splashShownAt = Date.now()
 
   // Dev mode uses its own migrate/seed npm scripts against prisma/dev.db via
   // the real prisma CLI, which isn't bundled into a packaged build. A fresh
