@@ -7,7 +7,7 @@ import Modal from '../components/ui/Modal';
 import Badge, { statusBadge } from '../components/ui/Badge';
 import { useToast } from '../components/ui/Toast';
 import { TableSkeleton } from '../components/ui/Skeleton';
-import { getErrorMessage, fmtDate, fmtRWF } from '../hooks/useToastHelper';
+import { getErrorMessage, fmtDate, fmtRWF, toDateInputValue } from '../hooks/useToastHelper';
 import { PRODUCTS, getBrickLabel } from '../constants/products';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
@@ -96,8 +96,8 @@ export default function OrdersPage() {
       quality_grade: o.quality_grade,
       quantity: o.quantity,
       unit_price: o.unit_price,
-      order_date: o.order_date?.slice(0, 10),
-      required_delivery_date: (o as any).required_delivery_date?.slice(0, 10) || '',
+      order_date: toDateInputValue(o.order_date),
+      required_delivery_date: toDateInputValue((o as any).required_delivery_date),
       notes: o.notes || '',
       custom_name: (o as any).custom_name || '',
     });

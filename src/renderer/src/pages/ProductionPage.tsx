@@ -9,7 +9,7 @@ import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
 import { useToast } from '../components/ui/Toast';
 import { TableSkeleton } from '../components/ui/Skeleton';
-import { getErrorMessage, fmtDate } from '../hooks/useToastHelper';
+import { getErrorMessage, fmtDate, toDateInputValue } from '../hooks/useToastHelper';
 import { PRODUCTS } from '../constants/products';
 
 const SHIFTS = ['MORNING', 'AFTERNOON', 'NIGHT'];
@@ -101,7 +101,7 @@ export default function ProductionPage() {
   function openEdit(b: ProductionBatch) {
     setSelected(b);
     setForm({
-      ...b, date: b.date.slice(0, 10), kilnId: (b as any).kilnId || '', custom_name: b.custom_name || '',
+      ...b, date: toDateInputValue(b.date), kilnId: (b as any).kilnId || '', custom_name: b.custom_name || '',
       materials_used: (b.consumptions || []).map(c => ({ material_type: c.material_type, quantity_used: c.quantity_used })),
     });
     setModal('edit');
