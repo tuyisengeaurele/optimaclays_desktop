@@ -12,5 +12,6 @@
     "resolveJsonModule": true,
     "types": ["vite/client"]
   },
-  "include": ["src/renderer/src/**/*", "src/preload/index.d.ts"]
+  "include": ["src/renderer/src/**/*", "src/preload/index.d.ts"],
+  "exclude": ["src/renderer/src/**/*.test.ts"]
 }
