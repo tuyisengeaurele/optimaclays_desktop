@@ -1,5 +1,7 @@
-import { writeFile } from 'fs/promises'
-import { BrowserWindow, dialog } from 'electron'
+import { writeFile, unlink } from 'fs/promises'
+import { randomUUID } from 'crypto'
+import { join } from 'path'
+import { app, BrowserWindow, dialog } from 'electron'
 import { handle } from './handle'
 
 interface PrintHtmlPayload {
@@ -28,11 +30,20 @@ async function printHtml(html: string): Promise<void> {
   })
   printWindow.webContents.on('will-navigate', (event) => event.preventDefault())
   printWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+
+  // loadURL with the html wrapped in a data: URL blows past a URL length
+  // limit once the embedded logo's base64 image is counted too, and the
+  // load fails silently - the same failure mode the splash screen hit.
+  // A temp file sidesteps any size ceiling since it's a normal file://
+  // navigation instead of one giant URL.
+  const htmlPath = join(app.getPath('temp'), `optima-clays-print-${randomUUID()}.html`)
   try {
-    await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await writeFile(htmlPath, html)
+    await printWindow.loadFile(htmlPath)
     await printWindow.webContents.print({ silent: false })
   } finally {
     if (!printWindow.isDestroyed()) printWindow.destroy()
+    await unlink(htmlPath).catch(() => {})
   }
 }
 

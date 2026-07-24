@@ -1,14 +1,17 @@
-import { readFileSync } from 'fs'
-import { BrowserWindow } from 'electron'
+import { writeFileSync } from 'fs'
+import { join } from 'path'
+import { pathToFileURL } from 'url'
+import { app, BrowserWindow } from 'electron'
 import { LOGO_PATH } from './ipc/logoPath'
 
 function splashHtml(): string {
-  // The splash page loads via a data: URL, which gets an opaque origin - a
-  // file:// image reference gets blocked as a local-resource load from a
-  // non-file origin, so the logo is inlined as base64 instead, the same way
-  // the payslip/proforma/waybill templates already embed it.
-  const logoBase64 = readFileSync(LOGO_PATH).toString('base64')
-  const logoUrl = `data:image/png;base64,${logoBase64}`
+  // The page itself loads via file:// (loadFile), so a plain file:// image
+  // reference works with no restriction, unlike a data: URL page (an
+  // earlier version of this file tried inlining the logo as base64 into a
+  // data: URL, but the whole page - HTML plus a multi-megabyte encoded
+  // image - blew past a URL length limit and the load silently failed,
+  // leaving a blank window).
+  const logoUrl = pathToFileURL(LOGO_PATH).toString()
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -59,7 +62,15 @@ function splashHtml(): string {
 </html>`
 }
 
-export function createSplashWindow(): BrowserWindow {
+export interface SplashHandle {
+  window: BrowserWindow
+  // Resolves only once the window has actually called .show(), so callers
+  // can time a minimum-visible duration from when it's truly on screen
+  // rather than from when the BrowserWindow object was merely created.
+  shown: Promise<void>
+}
+
+export function createSplashWindow(): SplashHandle {
   const splash = new BrowserWindow({
     width: 420,
     height: 280,
@@ -80,8 +91,28 @@ export function createSplashWindow(): BrowserWindow {
   splash.webContents.on('will-navigate', (event) => event.preventDefault())
   splash.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
-  splash.once('ready-to-show', () => splash.show())
-  splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml())}`)
+  const shown = new Promise<void>((resolve) => {
+    let resolved = false
+    const resolveOnce = (): void => {
+      if (resolved) return
+      resolved = true
+      resolve()
+    }
+    splash.once('ready-to-show', () => {
+      splash.show()
+      resolveOnce()
+    })
+    // App startup waits on this promise, so a fallback keeps a rendering
+    // hiccup on this static, local page from ever hanging the whole app.
+    setTimeout(() => {
+      if (!splash.isDestroyed() && !splash.isVisible()) splash.show()
+      resolveOnce()
+    }, 2000)
+  })
 
-  return splash
+  const htmlPath = join(app.getPath('temp'), 'optima-clays-splash.html')
+  writeFileSync(htmlPath, splashHtml())
+  splash.loadFile(htmlPath)
+
+  return { window: splash, shown }
 }
