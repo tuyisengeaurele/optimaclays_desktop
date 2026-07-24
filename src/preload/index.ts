@@ -6,6 +6,10 @@ function setToken(token: string | null): void {
   currentToken = token
 }
 
+function getToken(): string | null {
+  return currentToken
+}
+
 async function invoke<TPayload, TResult>(channel: string, payload: TPayload): Promise<TResult> {
   const result = await ipcRenderer.invoke(channel, { token: currentToken, payload })
   if (!result.ok) throw new Error(result.message)
@@ -24,6 +28,7 @@ async function invokePublic<TPayload, TResult>(channel: string, payload: TPayloa
 
 const api = {
   setToken,
+  getToken,
   invoke,
   invokePublic,
   versions: {

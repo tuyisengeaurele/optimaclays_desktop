@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide browser-native password reveal buttons (Edge, IE, Chrome) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-accent font-sans;
+  }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10 hover:text-white;
+  }
+  .sidebar-link.active {
+    @apply bg-white/20 text-white;
+  }
+  .card {
+    @apply bg-surface rounded-xl shadow-sm border border-border p-6;
+  }
+  .btn-primary {
+    @apply bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-secondary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors;
+  }
+  .btn-outline {
+    @apply border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-background transition-colors;
+  }
+  .input {
+    @apply w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white;
+  }
+  .label {
+    @apply block text-sm font-medium text-accent mb-1;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .table-header {
+    @apply bg-accent text-white text-xs font-semibold uppercase tracking-wider;
+  }
+  .kpi-card {
+    @apply card flex flex-col gap-1;
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  nav, aside, header { display: none !important; }
+}

@@ -22,6 +22,7 @@ import { registerSettingsHandlers } from './settings'
 import { registerAuditHandlers } from './audit'
 import { registerNotificationHandlers } from './notifications'
 import { registerImportHandlers } from './import'
+import { registerDialogHandlers } from './dialogs'
 
 export function registerAllHandlers(): void {
   registerAuthHandlers()
@@ -48,4 +49,5 @@ export function registerAllHandlers(): void {
   registerAuditHandlers()
   registerNotificationHandlers()
   registerImportHandlers()
+  registerDialogHandlers()
 }

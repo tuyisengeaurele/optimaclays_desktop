@@ -20,6 +20,11 @@ export default defineConfig({
     }
   },
   renderer: {
+    // The packaged app loads index.html via file://, where an absolute path
+    // like /logo.png resolves against the filesystem root, not the html
+    // file's own folder. base: './' keeps every built asset reference
+    // relative so it still resolves once loaded outside a dev server.
+    base: './',
     root: resolve(__dirname, 'src/renderer'),
     build: {
       rollupOptions: {

@@ -6,10 +6,14 @@ Design spec: `docs/superpowers/specs/2026-07-23-electron-desktop-migration-desig
 
 ## Status
 
-Phase 3 of 6: IPC backend. All 24 resource domains ported from the source
-web app's Express controllers to IPC handlers with session-based auth.
-Verified via manual smoke tests through the DevTools console. No renderer
-UI wiring yet — the app still shows the Phase 1 placeholder screen.
+Phase 4 of 6: frontend rewire. All 26 pages ported from the source web app,
+with the services layer switched from axios/HTTP to IPC behind a
+compatibility shim so page code didn't need to change how it reads
+responses. Routing moved to a hash router since the renderer loads from
+`file://` with no server to fall back to on a refresh. Native dialogs
+handle printing, saving exports, and picking import files. Verified with
+Playwright driving the real packaged app end to end, including a full
+click-through of every sidebar page.
 
 ## Development
 
