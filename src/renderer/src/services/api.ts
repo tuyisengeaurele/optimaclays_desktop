@@ -53,8 +53,8 @@ export const payrollApi = {
   updateEntry: (runId: string, entryId: string, data: object) => callIpc('payroll:updateEntry', { runId, entryId, ...data }),
   finalize: (runId: string) => callIpc('payroll:finalize', { runId }),
   delete: (runId: string) => callIpc('payroll:delete', { runId }),
-  export: (runId: string) => saveBufferViaDialog('payroll:export', { runId }),
-  downloadPayslip: (runId: string, employeeId: string) => printHtmlViaDialog('payroll:payslip', { runId, employeeId })
+  export: (runId: string) => saveBufferViaDialog('payroll:export', { runId }, 'Payroll'),
+  downloadPayslip: (runId: string, employeeId: string) => downloadPdfViaDialog('payroll:payslip', { runId, employeeId }, 'Payslips')
 }
 
 export const attendanceApi = {
@@ -142,7 +142,7 @@ export const proformaApi = {
   }) => callIpc('proformas:create', data),
   get: (id: string) => callIpc('proformas:get', { id }),
   delete: (id: string) => callIpc('proformas:delete', { id }),
-  downloadPdf: (id: string) => printHtmlViaDialog('proformas:pdf', { id })
+  downloadPdf: (id: string) => downloadPdfViaDialog('proformas:pdf', { id }, 'Proformas')
 }
 
 export const invoiceApi = {
@@ -163,7 +163,7 @@ export const deliveryApi = {
   updateStatus: (id: string, data: object) => callIpc('deliveries:updateStatus', { id, ...data }),
   recordDamage: (id: string, data: object) => callIpc('deliveries:recordDamage', { id, ...data }),
   delete: (id: string) => callIpc('deliveries:delete', { id }),
-  downloadWaybillPdf: (id: string) => printHtmlViaDialog('deliveries:waybill', { id })
+  downloadWaybillPdf: (id: string) => downloadPdfViaDialog('deliveries:waybill', { id }, 'Waybills')
 }
 
 export const expenseApi = {
@@ -184,9 +184,9 @@ export const reportApi = {
   sales: (params?: object) => callIpc('reports:sales', params || {}),
   payroll: (params?: object) => callIpc('reports:payroll', params || {}),
   financials: (params?: object) => callIpc('reports:financials', params || {}),
-  exportInvoices: (params?: object) => saveBufferViaDialog('reports:exportInvoices', params || {}),
-  exportExpenses: (params?: object) => saveBufferViaDialog('reports:exportExpenses', params || {}),
-  exportPayments: (params?: object) => saveBufferViaDialog('reports:exportPayments', params || {})
+  exportInvoices: (params?: object) => saveBufferViaDialog('reports:exportInvoices', params || {}, 'Reports'),
+  exportExpenses: (params?: object) => saveBufferViaDialog('reports:exportExpenses', params || {}, 'Reports'),
+  exportPayments: (params?: object) => saveBufferViaDialog('reports:exportPayments', params || {}, 'Reports')
 }
 
 export const dashboardApi = {
@@ -216,17 +216,18 @@ export const importApi = {
 }
 
 // Payslip/proforma/waybill handlers return { html, filename } instead of PDF
-// bytes (Phase 6 wires real PDF generation). For now this opens the native
-// print dialog against that HTML - "Microsoft Print to PDF" works as a
-// virtual printer if the user wants a file instead of paper.
-async function printHtmlViaDialog(channel: string, payload: unknown): Promise<void> {
+// bytes. This turns that HTML into a real PDF and hands it to a native save
+// dialog, defaulting to a per-document-type folder under the user's own
+// Documents folder.
+async function downloadPdfViaDialog(channel: string, payload: unknown, category: string): Promise<void> {
   const result = await window.api.invoke<unknown, { html: string; filename: string }>(channel, payload)
-  await window.api.invoke('dialogs:printHtml', result)
+  await window.api.invoke('dialogs:downloadPdf', { ...result, category })
 }
 
 // xlsx/CSV export handlers return a base64 buffer instead of streaming an
-// HTTP response. This hands it to a native save dialog instead.
-async function saveBufferViaDialog(channel: string, payload: unknown): Promise<void> {
+// HTTP response. This hands it to a native save dialog instead, defaulting
+// to a per-document-type folder under the user's own Documents folder.
+async function saveBufferViaDialog(channel: string, payload: unknown, category: string): Promise<void> {
   const result = await window.api.invoke<unknown, { buffer: string; filename: string }>(channel, payload)
-  await window.api.invoke('dialogs:saveBuffer', result)
+  await window.api.invoke('dialogs:saveBuffer', { ...result, category })
 }

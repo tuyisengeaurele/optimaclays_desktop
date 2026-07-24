@@ -27,7 +27,7 @@ export default function ImportPage() {
     const tmpl = TEMPLATES[type];
     const csv = [tmpl.headers.join(','), tmpl.example.join(',')].join('\r\n');
     const buffer = btoa(unescape(encodeURIComponent(csv)));
-    await window.api.invoke('dialogs:saveBuffer', { buffer, filename: `${type}_import_template.csv` });
+    await window.api.invoke('dialogs:saveBuffer', { buffer, filename: `${type}_import_template.csv`, category: 'Templates' });
   }
 
   async function handlePickFile() {
