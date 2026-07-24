@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './components/ui/Toast'
 import ProtectedRoute, { RequireRole } from './components/layout/ProtectedRoute'
 import Layout from './components/layout/Layout'
+import IdleLockOverlay from './components/IdleLockOverlay'
 
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
@@ -37,6 +38,7 @@ export default function App(): JSX.Element {
     <HashRouter>
       <AuthProvider>
         <ToastProvider>
+          <IdleLockOverlay />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route
