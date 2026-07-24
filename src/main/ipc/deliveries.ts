@@ -218,7 +218,8 @@ export function registerDeliveryHandlers(): void {
         },
         include: { order: { include: { customer: true } }, costs: true }
       })
-    }
+    },
+    { resource: 'delivery', action: 'CREATE' }
   )
 
   handle<UpdateDeliveryStatusPayload, DeliveryWithOrderAndCosts>(
@@ -269,25 +270,31 @@ export function registerDeliveryHandlers(): void {
 
         return updated
       })
-    }
+    },
+    { resource: 'delivery', action: 'UPDATE' }
   )
 
-  handle<RecordDamagePayload, DeliveryWithOrderAndCosts>('deliveries:recordDamage', null, async ({ id, damage_qty, damage_notes }) => {
-    const delivery = await prisma.delivery.findUnique({
-      where: { id },
-      include: { order: { include: { invoices: true } } }
-    })
-    if (!delivery) throw new NotFoundError('Delivery not found')
-    if (damage_qty == null || isNaN(Number(damage_qty)) || Number(damage_qty) < 0) {
-      throw new BadRequestError('damage_qty must be a non-negative number')
-    }
-    const qty = Number(damage_qty)
-    return prisma.delivery.update({
-      where: { id },
-      data: { damage_qty: qty, damage_notes: damage_notes || null },
-      include: { order: { include: { customer: true } }, costs: true }
-    })
-  })
+  handle<RecordDamagePayload, DeliveryWithOrderAndCosts>(
+    'deliveries:recordDamage',
+    null,
+    async ({ id, damage_qty, damage_notes }) => {
+      const delivery = await prisma.delivery.findUnique({
+        where: { id },
+        include: { order: { include: { invoices: true } } }
+      })
+      if (!delivery) throw new NotFoundError('Delivery not found')
+      if (damage_qty == null || isNaN(Number(damage_qty)) || Number(damage_qty) < 0) {
+        throw new BadRequestError('damage_qty must be a non-negative number')
+      }
+      const qty = Number(damage_qty)
+      return prisma.delivery.update({
+        where: { id },
+        data: { damage_qty: qty, damage_notes: damage_notes || null },
+        include: { order: { include: { customer: true } }, costs: true }
+      })
+    },
+    { resource: 'delivery', action: 'UPDATE' }
+  )
 
   handle<WaybillPayload, WaybillResult>('deliveries:waybill', null, async ({ id }) => {
     const doc = await buildWaybillHtml(id)
@@ -295,15 +302,20 @@ export function registerDeliveryHandlers(): void {
     return { html: doc.html, filename: `Waybill-${doc.number}.pdf` }
   })
 
-  handle<DeleteDeliveryPayload, { deleted: boolean }>('deliveries:delete', ['ADMIN'], async ({ id }) => {
-    const delivery = await prisma.delivery.findUnique({ where: { id } })
-    if (!delivery) throw new NotFoundError('Delivery not found')
-    // Costs is a child row with no cascade delete configured on the schema, so it is
-    // removed first, then the delivery — both in one transaction.
-    await prisma.$transaction(async (tx) => {
-      await tx.deliveryCost.deleteMany({ where: { deliveryId: id } })
-      await tx.delivery.delete({ where: { id } })
-    })
-    return { deleted: true }
-  })
+  handle<DeleteDeliveryPayload, { deleted: boolean }>(
+    'deliveries:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const delivery = await prisma.delivery.findUnique({ where: { id } })
+      if (!delivery) throw new NotFoundError('Delivery not found')
+      // Costs is a child row with no cascade delete configured on the schema, so it is
+      // removed first, then the delivery — both in one transaction.
+      await prisma.$transaction(async (tx) => {
+        await tx.deliveryCost.deleteMany({ where: { deliveryId: id } })
+        await tx.delivery.delete({ where: { id } })
+      })
+      return { deleted: true }
+    },
+    { resource: 'delivery', action: 'DELETE' }
+  )
 }

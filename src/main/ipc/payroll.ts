@@ -56,47 +56,52 @@ export function registerPayrollHandlers(): void {
     })
   )
 
-  handle<CreatePayrollRunPayload, PayrollRunWithEntries>('payroll:create', ['ADMIN', 'ACCOUNTANT'], async ({ month, year }) => {
-    const existing = await prisma.payrollRun.findFirst({ where: { month, year } })
-    if (existing) throw new BadRequestError('Payroll run for this month/year already exists')
+  handle<CreatePayrollRunPayload, PayrollRunWithEntries>(
+    'payroll:create',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ month, year }) => {
+      const existing = await prisma.payrollRun.findFirst({ where: { month, year } })
+      if (existing) throw new BadRequestError('Payroll run for this month/year already exists')
 
-    const employees = await prisma.employee.findMany({ where: { deletedAt: null, is_active: true } })
-    const monStr = MONTHS[month - 1]
+      const employees = await prisma.employee.findMany({ where: { deletedAt: null, is_active: true } })
+      const monStr = MONTHS[month - 1]
 
-    // DAILY/PIECE_RATE staff are paid whatever they actually earned that month, tallied
-    // from their attendance records, rather than a flat monthly figure.
-    const start = new Date(year, month - 1, 1)
-    const end = new Date(year, month, 1)
-    const dailyWages = await prisma.attendanceLog.groupBy({
-      by: ['employeeId'],
-      where: {
-        employeeId: { in: employees.filter((e) => e.wage_type !== 'MONTHLY').map((e) => e.id) },
-        date: { gte: start, lt: end }
-      },
-      _sum: { wage_earned: true }
-    })
-    const wagesByEmployee = new Map(dailyWages.map((w) => [w.employeeId, w._sum.wage_earned || 0]))
+      // DAILY/PIECE_RATE staff are paid whatever they actually earned that month, tallied
+      // from their attendance records, rather than a flat monthly figure.
+      const start = new Date(year, month - 1, 1)
+      const end = new Date(year, month, 1)
+      const dailyWages = await prisma.attendanceLog.groupBy({
+        by: ['employeeId'],
+        where: {
+          employeeId: { in: employees.filter((e) => e.wage_type !== 'MONTHLY').map((e) => e.id) },
+          date: { gte: start, lt: end }
+        },
+        _sum: { wage_earned: true }
+      })
+      const wagesByEmployee = new Map(dailyWages.map((w) => [w.employeeId, w._sum.wage_earned || 0]))
 
-    return prisma.payrollRun.create({
-      data: {
-        month,
-        year,
-        entries: {
-          create: employees.map((e) => {
-            const gross = e.wage_type === 'MONTHLY' ? e.base_salary || 0 : wagesByEmployee.get(e.id) || 0
-            const narration = e.wage_type === 'MONTHLY' ? `Monthly-salary-${monStr}-${year}` : `Daily-wages-${monStr}-${year}`
-            return {
-              employeeId: e.id,
-              gross_salary: gross,
-              net_salary: gross,
-              narration
-            }
-          })
-        }
-      },
-      include: { entries: { include: { employee: true } } }
-    })
-  })
+      return prisma.payrollRun.create({
+        data: {
+          month,
+          year,
+          entries: {
+            create: employees.map((e) => {
+              const gross = e.wage_type === 'MONTHLY' ? e.base_salary || 0 : wagesByEmployee.get(e.id) || 0
+              const narration = e.wage_type === 'MONTHLY' ? `Monthly-salary-${monStr}-${year}` : `Daily-wages-${monStr}-${year}`
+              return {
+                employeeId: e.id,
+                gross_salary: gross,
+                net_salary: gross,
+                narration
+              }
+            })
+          }
+        },
+        include: { entries: { include: { employee: true } } }
+      })
+    },
+    { resource: 'payroll', action: 'CREATE' }
+  )
 
   handle<GetPayrollRunPayload, PayrollRunWithEntries>('payroll:get', null, async ({ runId }) => {
     const run = await prisma.payrollRun.findUnique({
@@ -130,28 +135,42 @@ export function registerPayrollHandlers(): void {
         },
         include: { employee: true }
       })
-    }
+    },
+    { resource: 'payroll', action: 'UPDATE' }
   )
 
-  handle<FinalizeRunPayload, PayrollRun>('payroll:finalize', ['ADMIN', 'ACCOUNTANT'], async ({ runId }) => {
-    const run = await prisma.payrollRun.findUnique({ where: { id: runId } })
-    if (!run) throw new NotFoundError('Payroll run not found')
-    if (run.finalized) throw new BadRequestError('Payroll run is already finalized')
-    return prisma.payrollRun.update({
-      where: { id: runId },
-      data: { finalized: true }
-    })
-  })
+  handle<FinalizeRunPayload, PayrollRun>(
+    'payroll:finalize',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ runId }) => {
+      const run = await prisma.payrollRun.findUnique({ where: { id: runId } })
+      if (!run) throw new NotFoundError('Payroll run not found')
+      if (run.finalized) throw new BadRequestError('Payroll run is already finalized')
+      return prisma.payrollRun.update({
+        where: { id: runId },
+        data: { finalized: true }
+      })
+    },
+    { resource: 'payroll', action: 'CREATE' }
+  )
 
-  handle<DeletePayrollRunPayload, { deleted: boolean }>('payroll:delete', ['ADMIN', 'ACCOUNTANT'], async ({ runId }) => {
-    const run = await prisma.payrollRun.findUnique({ where: { id: runId } })
-    if (!run) throw new NotFoundError('Payroll run not found')
-    if (run.finalized) throw new BadRequestError('Cannot delete a finalized payroll run')
-    // Cascade delete entries first
-    await prisma.payrollEntry.deleteMany({ where: { payrollRunId: run.id } })
-    await prisma.payrollRun.delete({ where: { id: run.id } })
-    return { deleted: true }
-  })
+  handle<DeletePayrollRunPayload, { deleted: boolean }>(
+    'payroll:delete',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ runId }) => {
+      const run = await prisma.payrollRun.findUnique({ where: { id: runId } })
+      if (!run) throw new NotFoundError('Payroll run not found')
+      if (run.finalized) throw new BadRequestError('Cannot delete a finalized payroll run')
+      // Entries and the run must be removed together, matching the same
+      // transactional pattern used by invoices:delete and deliveries:delete.
+      await prisma.$transaction([
+        prisma.payrollEntry.deleteMany({ where: { payrollRunId: run.id } }),
+        prisma.payrollRun.delete({ where: { id: run.id } })
+      ])
+      return { deleted: true }
+    },
+    { resource: 'payroll', action: 'DELETE' }
+  )
 
   handle<ExportPayrollPayload, { buffer: string; filename: string }>(
     'payroll:export',

@@ -34,18 +34,23 @@ export function registerKilnHandlers(): void {
     })
   )
 
-  handle<CreateKilnPayload, Kiln>('kilns:create', ['ADMIN', 'PRODUCTION_SUPERVISOR'], async ({ name, capacity, status, last_service_date, notes }) => {
-    if (!name?.trim()) throw new BadRequestError('name is required')
-    return prisma.kiln.create({
-      data: {
-        name: name.trim(),
-        capacity: Number(capacity) || 0,
-        status: status || 'ACTIVE',
-        last_service_date: last_service_date ? new Date(last_service_date) : null,
-        notes: notes || null
-      }
-    })
-  })
+  handle<CreateKilnPayload, Kiln>(
+    'kilns:create',
+    ['ADMIN', 'PRODUCTION_SUPERVISOR'],
+    async ({ name, capacity, status, last_service_date, notes }) => {
+      if (!name?.trim()) throw new BadRequestError('name is required')
+      return prisma.kiln.create({
+        data: {
+          name: name.trim(),
+          capacity: Number(capacity) || 0,
+          status: status || 'ACTIVE',
+          last_service_date: last_service_date ? new Date(last_service_date) : null,
+          notes: notes || null
+        }
+      })
+    },
+    { resource: 'kiln', action: 'CREATE' }
+  )
 
   handle<UpdateKilnPayload, Kiln>(
     'kilns:update',
@@ -63,15 +68,21 @@ export function registerKilnHandlers(): void {
           notes: notes !== undefined ? notes || null : undefined
         }
       })
-    }
+    },
+    { resource: 'kiln', action: 'UPDATE' }
   )
 
-  handle<DeleteKilnPayload, { deleted: boolean }>('kilns:delete', ['ADMIN'], async ({ id }) => {
-    const kiln = await prisma.kiln.findUnique({ where: { id } })
-    if (!kiln) throw new NotFoundError('Kiln not found')
-    const batchCount = await prisma.productionBatch.count({ where: { kilnId: id } })
-    if (batchCount > 0) throw new BadRequestError('Cannot delete kiln with existing production batches')
-    await prisma.kiln.delete({ where: { id } })
-    return { deleted: true }
-  })
+  handle<DeleteKilnPayload, { deleted: boolean }>(
+    'kilns:delete',
+    ['ADMIN'],
+    async ({ id }) => {
+      const kiln = await prisma.kiln.findUnique({ where: { id } })
+      if (!kiln) throw new NotFoundError('Kiln not found')
+      const batchCount = await prisma.productionBatch.count({ where: { kilnId: id } })
+      if (batchCount > 0) throw new BadRequestError('Cannot delete kiln with existing production batches')
+      await prisma.kiln.delete({ where: { id } })
+      return { deleted: true }
+    },
+    { resource: 'kiln', action: 'DELETE' }
+  )
 }

@@ -131,13 +131,18 @@ export function registerInventoryHandlers(): void {
         },
         include: { supplier: true }
       })
-    }
+    },
+    { resource: 'inventory', action: 'CREATE' }
   )
 
-  handle<ConsumeRawMaterialPayload, RawMaterialConsumption>('inventory:consumeRawMaterial', null, async ({ material_type, quantity_used, date, notes }) =>
-    prisma.rawMaterialConsumption.create({
-      data: { material_type, quantity_used: Number(quantity_used), date: new Date(date), notes }
-    })
+  handle<ConsumeRawMaterialPayload, RawMaterialConsumption>(
+    'inventory:consumeRawMaterial',
+    null,
+    async ({ material_type, quantity_used, date, notes }) =>
+      prisma.rawMaterialConsumption.create({
+        data: { material_type, quantity_used: Number(quantity_used), date: new Date(date), notes }
+      }),
+    { resource: 'inventory', action: 'CREATE' }
   )
 
   handle<void, ListFinishedGoodsResult>('inventory:listFinishedGoods', null, async () => {
@@ -157,25 +162,34 @@ export function registerInventoryHandlers(): void {
     return { stocks, summary: Array.from(summary.values()) }
   })
 
-  handle<AddFinishedGoodsPayload, FinishedGoodsStock>('inventory:addFinishedGoods', null, async ({ brick_type, quality_grade, quantity, date, notes }) => {
-    if (!brick_type || quantity == null) throw new BadRequestError('brick_type and quantity are required')
-    if (!quality_grade) throw new BadRequestError('quality_grade is required')
-    return prisma.finishedGoodsStock.create({
-      data: {
-        brick_type,
-        quality_grade,
-        quantity: Number(quantity),
-        date: date ? new Date(date) : new Date(),
-        notes: notes || null
-      }
-    })
-  })
+  handle<AddFinishedGoodsPayload, FinishedGoodsStock>(
+    'inventory:addFinishedGoods',
+    null,
+    async ({ brick_type, quality_grade, quantity, date, notes }) => {
+      if (!brick_type || quantity == null) throw new BadRequestError('brick_type and quantity are required')
+      if (!quality_grade) throw new BadRequestError('quality_grade is required')
+      return prisma.finishedGoodsStock.create({
+        data: {
+          brick_type,
+          quality_grade,
+          quantity: Number(quantity),
+          date: date ? new Date(date) : new Date(),
+          notes: notes || null
+        }
+      })
+    },
+    { resource: 'inventory', action: 'CREATE' }
+  )
 
-  handle<SetThresholdPayload, StockThreshold>('inventory:setThreshold', null, async ({ material_type, threshold, unit }) =>
-    prisma.stockThreshold.upsert({
-      where: { material_type },
-      update: { threshold, unit },
-      create: { material_type, threshold, unit }
-    })
+  handle<SetThresholdPayload, StockThreshold>(
+    'inventory:setThreshold',
+    null,
+    async ({ material_type, threshold, unit }) =>
+      prisma.stockThreshold.upsert({
+        where: { material_type },
+        update: { threshold, unit },
+        create: { material_type, threshold, unit }
+      }),
+    { resource: 'inventory', action: 'CREATE' }
   )
 }

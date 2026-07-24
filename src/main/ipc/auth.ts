@@ -87,16 +87,21 @@ export function registerAuthHandlers(): void {
     }
   )
 
-  handle<ChangePasswordPayload, null>('auth:changePassword', null, async ({ currentPassword, newPassword }, session) => {
-    const strengthError = validatePasswordStrength(newPassword)
-    if (strengthError) throw new BadRequestError(strengthError)
-    const user = await getSessionUser(session.userId)
-    const valid = await bcrypt.compare(currentPassword, user.password)
-    if (!valid) throw new BadRequestError('Current password is incorrect')
-    const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
-    await prisma.user.update({ where: { id: session.userId }, data: { password: hashed } })
-    return null
-  })
+  handle<ChangePasswordPayload, null>(
+    'auth:changePassword',
+    null,
+    async ({ currentPassword, newPassword }, session) => {
+      const strengthError = validatePasswordStrength(newPassword)
+      if (strengthError) throw new BadRequestError(strengthError)
+      const user = await getSessionUser(session.userId)
+      const valid = await bcrypt.compare(currentPassword, user.password)
+      if (!valid) throw new BadRequestError('Current password is incorrect')
+      const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
+      await prisma.user.update({ where: { id: session.userId }, data: { password: hashed } })
+      return null
+    },
+    { resource: 'auth', action: 'UPDATE' }
+  )
 
   handle<UpdateProfilePayload, { id: string; email: string; full_name: string; role: Role }>(
     'auth:updateProfile',
@@ -115,7 +120,8 @@ export function registerAuthHandlers(): void {
         data,
         select: { id: true, email: true, full_name: true, role: true }
       })
-    }
+    },
+    { resource: 'auth', action: 'UPDATE' }
   )
 
   handle<void, Array<{ id: string; email: string; full_name: string; role: Role; is_active: boolean; createdAt: Date }>>(
@@ -144,7 +150,8 @@ export function registerAuthHandlers(): void {
         data: { email, password: hashed, full_name, role },
         select: { id: true, email: true, full_name: true, role: true, is_active: true }
       })
-    }
+    },
+    { resource: 'auth', action: 'CREATE' }
   )
 
   handle<UpdateUserPayload, { id: string; email: string; full_name: string; role: Role; is_active: boolean }>(
@@ -167,6 +174,7 @@ export function registerAuthHandlers(): void {
         data,
         select: { id: true, email: true, full_name: true, role: true, is_active: true }
       })
-    }
+    },
+    { resource: 'auth', action: 'UPDATE' }
   )
 }
