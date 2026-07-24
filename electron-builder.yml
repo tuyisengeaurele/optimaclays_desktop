@@ -6,10 +6,14 @@ directories:
 files:
   - out/**/*
   - package.json
+extraResources:
+  - from: logo.png
+    to: logo.png
 asarUnpack:
   - '**/*.node'
 win:
   target: nsis
+  icon: build/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
