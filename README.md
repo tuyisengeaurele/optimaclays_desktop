@@ -6,14 +6,13 @@ Design spec: `docs/superpowers/specs/2026-07-23-electron-desktop-migration-desig
 
 ## Status
 
-Phase 4 of 6: frontend rewire. All 26 pages ported from the source web app,
-with the services layer switched from axios/HTTP to IPC behind a
-compatibility shim so page code didn't need to change how it reads
-responses. Routing moved to a hash router since the renderer loads from
-`file://` with no server to fall back to on a refresh. Native dialogs
-handle printing, saving exports, and picking import files. Verified with
-Playwright driving the real packaged app end to end, including a full
-click-through of every sidebar page.
+Phase 5 of 6: splash screen and polish. The app now shows a splash window
+with the company logo while the main window loads, closing the moment
+it's ready. The sidebar has a tighter, more native look with a refined
+active-page indicator and a small pinned-shortcuts row so people can keep
+their most-used pages one click away. Swept the codebase for AI-tell
+writing patterns per the project's standing style rule. Verified with the
+full Playwright suite against the real packaged app.
 
 ## Development
 
