@@ -117,3 +117,37 @@ test('kilns:create and kilns:delete each write an AuditLog row; kilns:list write
     }
   }
 })
+
+test('auth:createUser never writes a plaintext password into the audit log', async () => {
+  const email = `audit-e2e-${Date.now()}@optimaclays.rw`
+  const plaintextPassword = 'AuditTest1234'
+  let createdUserId: string | null = null
+  let createdAuditId: string | null = null
+
+  try {
+    const user = await invokeWithToken<{ id: string }>('auth:createUser', adminToken, {
+      email,
+      password: plaintextPassword,
+      full_name: 'Audit E2E User',
+      role: 'ACCOUNTANT'
+    })
+    createdUserId = user.id
+
+    const createLogs = await prisma.auditLog.findMany({
+      where: { resource: 'auth', action: 'CREATE', resource_id: user.id }
+    })
+    expect(createLogs.length).toBe(1)
+    createdAuditId = createLogs[0].id
+
+    const stored = JSON.stringify(createLogs[0].new_values)
+    expect(stored).not.toContain(plaintextPassword)
+    expect(stored).toContain('[redacted]')
+  } finally {
+    if (createdAuditId) {
+      await prisma.auditLog.deleteMany({ where: { id: createdAuditId } }).catch(() => {})
+    }
+    if (createdUserId) {
+      await prisma.user.delete({ where: { id: createdUserId } }).catch(() => {})
+    }
+  }
+})

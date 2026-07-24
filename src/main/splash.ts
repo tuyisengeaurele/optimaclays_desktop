@@ -72,6 +72,9 @@ export function createSplashWindow(): BrowserWindow {
     }
   })
 
+  splash.webContents.on('will-navigate', (event) => event.preventDefault())
+  splash.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+
   splash.once('ready-to-show', () => splash.show())
   splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml())}`)
 

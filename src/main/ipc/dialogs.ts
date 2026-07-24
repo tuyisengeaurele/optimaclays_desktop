@@ -18,14 +18,16 @@ interface OpenFilePayload {
 }
 
 // Payslip/proforma/waybill handlers hand back an HTML string rather than PDF
-// bytes (Phase 6 wires up real PDF generation). This renders that HTML in an
-// offscreen window and opens the OS print dialog against it - "Microsoft
-// Print to PDF" works as a virtual printer if the user wants a file.
+// bytes. This renders that HTML in an offscreen window and opens the OS
+// print dialog against it - "Microsoft Print to PDF" works as a virtual
+// printer if the user wants a file instead of a physical printout.
 async function printHtml(html: string): Promise<void> {
   const printWindow = new BrowserWindow({
     show: false,
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
+  printWindow.webContents.on('will-navigate', (event) => event.preventDefault())
+  printWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   try {
     await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
     await printWindow.webContents.print({ silent: false })
