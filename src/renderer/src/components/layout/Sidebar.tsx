@@ -130,7 +130,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col bg-accent text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'} h-full flex-shrink-0`}
+      className={`relative flex flex-col bg-brand-navy text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'} h-full flex-shrink-0`}
     >
       {/* Logo */}
       <div className={`flex items-center gap-2.5 px-3.5 py-3.5 border-b border-white/10 flex-shrink-0 ${collapsed ? 'justify-center' : ''}`}>
@@ -166,7 +166,7 @@ export default function Sidebar() {
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(to); }}
                 title={`Unpin ${label}`}
-                className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center w-3.5 h-3.5 rounded-full bg-accent border border-white/30 text-white/70 hover:text-white"
+                className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center w-3.5 h-3.5 rounded-full bg-brand-navy border border-white/30 text-white/70 hover:text-white"
               >
                 <PinOff size={9} />
               </button>

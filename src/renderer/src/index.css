@@ -8,6 +8,24 @@ input::-ms-clear {
   display: none;
 }
 
+/* R G B triplets (no commas, no #) so Tailwind's <alpha-value> placeholder
+   in tailwind.config.js can apply opacity modifiers like bg-background/50. */
+:root {
+  --color-background: 245 240 235;
+  --color-surface: 255 255 255;
+  --color-accent: 44 62 80;
+  --color-muted-foreground: 127 140 141;
+  --color-border: 226 217 208;
+}
+
+.dark {
+  --color-background: 18 22 29;
+  --color-surface: 27 33 43;
+  --color-accent: 231 234 240;
+  --color-muted-foreground: 141 150 168;
+  --color-border: 42 49 64;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -37,7 +55,7 @@ input::-ms-clear {
     @apply border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-background transition-colors;
   }
   .input {
-    @apply w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white;
+    @apply w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-surface;
   }
   .label {
     @apply block text-sm font-medium text-accent mb-1;
@@ -46,7 +64,7 @@ input::-ms-clear {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
   .table-header {
-    @apply bg-accent text-white text-xs font-semibold uppercase tracking-wider;
+    @apply bg-brand-navy text-white text-xs font-semibold uppercase tracking-wider;
   }
   .kpi-card {
     @apply card flex flex-col gap-1;

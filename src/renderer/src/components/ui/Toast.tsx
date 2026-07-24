@@ -29,7 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const colors = {
     success: 'bg-success text-white',
     error: 'bg-danger text-white',
-    info: 'bg-accent text-white',
+    info: 'bg-brand-navy text-white',
   };
 
   return (

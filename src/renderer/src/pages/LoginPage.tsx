@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="bg-accent px-8 py-8 text-center">
+        <div className="bg-brand-navy px-8 py-8 text-center">
           <div className="flex items-center justify-center mx-auto mb-3">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="OPTIMA CLAYS LTD" className="h-20 w-auto object-contain drop-shadow-md" />
           </div>

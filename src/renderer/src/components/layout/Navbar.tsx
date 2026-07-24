@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Settings, AlertTriangle } from 'lucide-react';
+import { LogOut, Settings, AlertTriangle, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from '../ui/NotificationBell';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [confirmLogout, setConfirmLogout] = useState(false);
 
@@ -32,6 +34,13 @@ export default function Navbar() {
             </div>
           </div>
           <NotificationBell />
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="p-1.5 hover:bg-background rounded-lg transition-colors text-muted-foreground hover:text-accent"
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           <Link to="/settings" title="Settings" className="p-1.5 hover:bg-background rounded-lg transition-colors text-muted-foreground hover:text-accent">
             <Settings size={16} />
           </Link>
