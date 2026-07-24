@@ -8,7 +8,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useToast } from '../components/ui/Toast';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import Badge from '../components/ui/Badge';
-import { getErrorMessage, BANK_CODES, fmtDate } from '../hooks/useToastHelper';
+import { getErrorMessage, BANK_CODES, fmtDate, toDateInputValue } from '../hooks/useToastHelper';
 
 const WAGE_TYPES = ['MONTHLY', 'DAILY', 'PIECE_RATE'];
 
@@ -141,7 +141,7 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="label">Hire Date</label>
-            <input type="date" className="input" value={form.hire_date ? form.hire_date.slice(0,10) : ''} onChange={e => setForm({ ...form, hire_date: e.target.value })} />
+            <input type="date" className="input" value={toDateInputValue(form.hire_date)} onChange={e => setForm({ ...form, hire_date: e.target.value })} />
           </div>
           <div>
             <label className="label">Wage Type</label>

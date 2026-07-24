@@ -12,6 +12,17 @@ export function fmtDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB');
 }
 
+// IPC hands back DateTime fields as real Date objects (structured clone),
+// not the ISO strings a JSON/HTTP API would have serialized them to, so a
+// bare .slice(0, 10) on one throws. This normalizes either shape into the
+// yyyy-mm-dd string an <input type="date"> needs.
+export function toDateInputValue(value: unknown): string {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value as string);
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 export const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'

@@ -6,7 +6,7 @@ import Modal from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { TableSkeleton } from '../components/ui/Skeleton';
-import { getErrorMessage, fmtDate } from '../hooks/useToastHelper';
+import { getErrorMessage, fmtDate, toDateInputValue } from '../hooks/useToastHelper';
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800',
@@ -41,7 +41,7 @@ export default function KilnsPage() {
       name: k.name,
       capacity: k.capacity,
       status: k.status,
-      last_service_date: k.last_service_date ? k.last_service_date.slice(0, 10) : '',
+      last_service_date: toDateInputValue(k.last_service_date),
       notes: k.notes || '',
     });
     setModal(true);
