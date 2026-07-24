@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, DollarSign, Factory, Package,
   ShoppingCart, FileText, FileCheck, Truck, TrendingUp, BarChart2,
   PanelLeftClose, PanelLeftOpen, UserCheck, ClipboardList, ShieldCheck, Settings,
-  Flame, Building, Tag, ClipboardCheck, Upload, History, ChevronDown,
+  Flame, Building, Tag, ClipboardCheck, Upload, History, ChevronDown, Pin, PinOff,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -70,16 +70,44 @@ const GROUPS: Group[] = [
   },
 ];
 
+const ALL_ITEMS: NavItem[] = GROUPS.flatMap(group => group.items);
+const PINNED_ROUTES_KEY = 'optima-clays-pinned-nav';
+const MAX_PINNED = 6;
+
+function loadPinnedRoutes(): string[] {
+  try {
+    const raw = window.localStorage.getItem(PINNED_ROUTES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [pinnedRoutes, setPinnedRoutes] = useState<string[]>(() => loadPinnedRoutes());
   const { user } = useAuth();
   const location = useLocation();
 
   const role = user?.role ?? '';
 
+  useEffect(() => {
+    window.localStorage.setItem(PINNED_ROUTES_KEY, JSON.stringify(pinnedRoutes));
+  }, [pinnedRoutes]);
+
   function visibleItems(items: NavItem[]) {
     return items.filter(item => !item.roles || item.roles.includes(role));
+  }
+
+  function togglePin(to: string) {
+    setPinnedRoutes(prev => {
+      if (prev.includes(to)) return prev.filter(route => route !== to);
+      if (prev.length >= MAX_PINNED) return prev;
+      return [...prev, to];
+    });
   }
 
   function toggleGroup(label: string) {
@@ -96,27 +124,59 @@ export default function Sidebar() {
     );
   }
 
+  const visiblePinnedItems = pinnedRoutes
+    .map(to => ALL_ITEMS.find(item => item.to === to))
+    .filter((item): item is NavItem => !!item && (!item.roles || item.roles.includes(role)));
+
   return (
     <aside
-      className={`relative flex flex-col bg-accent text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'} h-full flex-shrink-0`}
+      className={`relative flex flex-col bg-accent text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'} h-full flex-shrink-0`}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 px-4 py-4 border-b border-white/10 flex-shrink-0 ${collapsed ? 'justify-center' : ''}`}>
+      <div className={`flex items-center gap-2.5 px-3.5 py-3.5 border-b border-white/10 flex-shrink-0 ${collapsed ? 'justify-center' : ''}`}>
         <img
           src={`${import.meta.env.BASE_URL}logo.png`}
           alt="OPTIMA CLAYS LTD"
-          className={`object-contain flex-shrink-0 ${collapsed ? 'h-8 w-8' : 'h-10 w-auto max-w-[120px]'}`}
+          className={`object-contain flex-shrink-0 ${collapsed ? 'h-7 w-7' : 'h-9 w-auto max-w-[110px]'}`}
         />
         {!collapsed && (
           <div>
-            <div className="font-bold text-sm leading-tight">OPTIMA CLAYS</div>
-            <div className="text-xs text-white/60">Business System</div>
+            <div className="font-bold text-[13px] leading-tight tracking-tight">OPTIMA CLAYS</div>
+            <div className="text-[11px] text-white/50">Business System</div>
           </div>
         )}
       </div>
 
+      {/* Pinned shortcuts */}
+      {!collapsed && visiblePinnedItems.length > 0 && (
+        <div className="flex flex-wrap gap-1 px-2.5 py-2 border-b border-white/10 flex-shrink-0">
+          {visiblePinnedItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              title={label}
+              className={({ isActive }) =>
+                `group relative flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
+                  isActive ? 'bg-primary text-white' : 'bg-white/5 text-white/70 hover:bg-white/15 hover:text-white'
+                }`
+              }
+            >
+              <Icon size={15} />
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(to); }}
+                title={`Unpin ${label}`}
+                className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center w-3.5 h-3.5 rounded-full bg-accent border border-white/30 text-white/70 hover:text-white"
+              >
+                <PinOff size={9} />
+              </button>
+            </NavLink>
+          ))}
+        </div>
+      )}
+
       {/* Nav */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-0.5">
+      <nav className="flex-1 py-2 px-1.5 overflow-y-auto space-y-0">
         {GROUPS.map(group => {
           const items = visibleItems(group.items);
           if (items.length === 0) return null;
@@ -126,23 +186,23 @@ export default function Sidebar() {
           const hasActive = groupHasActive(items);
 
           return (
-            <div key={group.label || 'root'} className="mb-1">
+            <div key={group.label || 'root'} className="mb-0.5">
               {/* Group header */}
               {group.label !== '' && !collapsed && (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 mt-2 rounded text-left transition-colors group ${
-                    hasActive && isClosed ? 'text-white/90' : 'text-white/40 hover:text-white/70'
+                  className={`w-full flex items-center justify-between px-2.5 py-1 mt-2.5 rounded text-left transition-colors group ${
+                    hasActive && isClosed ? 'text-white/90' : 'text-white/35 hover:text-white/65'
                   }`}
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-widest">
+                  <span className="text-[9.5px] font-semibold uppercase tracking-widest">
                     {group.label}
                     {hasActive && isClosed && (
-                      <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary align-middle" />
+                      <span className="ml-1.5 inline-block w-1 h-1 rounded-full bg-primary align-middle" />
                     )}
                   </span>
                   <ChevronDown
-                    size={11}
+                    size={10}
                     className={`transition-transform duration-150 ${isClosed ? '-rotate-90' : ''}`}
                   />
                 </button>
@@ -151,22 +211,42 @@ export default function Sidebar() {
               {/* Items */}
               {(!isCollapsible || !isClosed) && (
                 <div className={group.label && !collapsed ? 'mt-0.5' : ''}>
-                  {items.map(({ to, icon: Icon, label }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      end={to === '/'}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10 ${
-                          isActive ? 'bg-primary text-white' : 'text-white/70'
-                        } ${collapsed ? 'justify-center' : ''}`
-                      }
-                      title={collapsed ? label : undefined}
-                    >
-                      <Icon size={18} className="flex-shrink-0" />
-                      {!collapsed && <span>{label}</span>}
-                    </NavLink>
-                  ))}
+                  {items.map(({ to, icon: Icon, label }) => {
+                    const isPinned = pinnedRoutes.includes(to);
+                    return (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={to === '/'}
+                        className={({ isActive }) =>
+                          `group relative flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-md text-[13px] font-medium transition-colors hover:bg-white/10 ${
+                            isActive ? 'bg-primary/90 text-white' : 'text-white/65'
+                          } ${collapsed ? 'justify-center' : ''}`
+                        }
+                        title={collapsed ? label : undefined}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive && !collapsed && (
+                              <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/80" />
+                            )}
+                            <Icon size={16} className="flex-shrink-0" />
+                            {!collapsed && <span className="flex-1 truncate">{label}</span>}
+                            {!collapsed && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(to); }}
+                                title={isPinned ? `Unpin ${label}` : `Pin ${label}`}
+                                className={`flex-shrink-0 ${isPinned ? 'text-white/70' : 'text-white/0 group-hover:text-white/40 hover:!text-white'}`}
+                              >
+                                <Pin size={11} fill={isPinned ? 'currentColor' : 'none'} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    );
+                  })}
                 </div>
               )}
             </div>

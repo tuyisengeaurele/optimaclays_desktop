@@ -1,5 +1,5 @@
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test'
+import { launchApp } from './helpers'
 
 const PAGES_TO_CHECK: Array<{ href: string; expectText: string }> = [
   { href: '#/', expectText: 'Revenue' },
@@ -28,8 +28,7 @@ const PAGES_TO_CHECK: Array<{ href: string; expectText: string }> = [
 test.setTimeout(120000)
 
 test('every sidebar page renders without console errors', async () => {
-  const app = await electron.launch({ args: [path.join(__dirname, '..', 'out', 'main', 'index.js')] })
-  const window = await app.firstWindow()
+  const { app, window } = await launchApp()
   const consoleErrors: string[] = []
   window.on('console', (msg) => {
     if (msg.type() === 'error') consoleErrors.push(msg.text())

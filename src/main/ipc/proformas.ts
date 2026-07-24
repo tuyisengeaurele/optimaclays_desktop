@@ -136,7 +136,7 @@ async function buildProformaHtml(id: string): Promise<{ html: string; number: st
         : ''
   const clientLocation = customer.location || ''
 
-  // Logo — embed as base64 so it prints offline
+  // Logo, embed as base64 so it prints offline
   let logoHtml = `<div style="width:80px;height:80px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;letter-spacing:1px;">OPTIMA<br>CLAYS</div>`
   try {
     if (fs.existsSync(LOGO_PATH)) {
@@ -454,7 +454,7 @@ export function registerProformaHandlers(): void {
         }
       }
 
-      // Transaction so the running count + create stay atomic — prevents duplicate
+      // Transaction so the running count + create stay atomic, prevents duplicate
       // proforma numbers under concurrent calls.
       return prisma.$transaction(async (tx) => {
         const count = await tx.proformaInvoice.count({ where: { number: { startsWith: `PRO-${year}-` } } })
