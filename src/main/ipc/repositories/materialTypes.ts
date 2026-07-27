@@ -1,7 +1,7 @@
-import type { MaterialType, Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../db'
 
-export async function getMaterialTypes(supplierId: string): Promise<MaterialType[]> {
+export async function getMaterialTypes(supplierId: string): Promise<string[]> {
   const rows = await prisma.supplierMaterialType.findMany({ where: { supplierId } })
   return rows.map((row) => row.materialType)
 }
@@ -10,9 +10,9 @@ export async function getMaterialTypes(supplierId: string): Promise<MaterialType
 // $transaction can keep this write atomic with the rest of their operation.
 export async function setMaterialTypes(
   supplierId: string,
-  materialTypes: MaterialType[],
+  materialTypes: string[],
   tx?: Prisma.TransactionClient
-): Promise<MaterialType[]> {
+): Promise<string[]> {
   const unique = Array.from(new Set(materialTypes))
   const write = async (client: Prisma.TransactionClient): Promise<void> => {
     await client.supplierMaterialType.deleteMany({ where: { supplierId } })

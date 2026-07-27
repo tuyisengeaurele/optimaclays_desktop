@@ -16,6 +16,7 @@ import { registerPaymentHandlers } from './payments'
 import { registerDeliveryHandlers } from './deliveries'
 import { registerExpenseHandlers } from './expenses'
 import { registerExpenseCategoryHandlers } from './expenseCategories'
+import { registerMaterialCategoryHandlers } from './materialCategories'
 import { registerReportHandlers } from './reports'
 import { registerDashboardHandlers } from './dashboard'
 import { registerSettingsHandlers } from './settings'
@@ -43,6 +44,7 @@ export function registerAllHandlers(): void {
   registerDeliveryHandlers()
   registerExpenseHandlers()
   registerExpenseCategoryHandlers()
+  registerMaterialCategoryHandlers()
   registerReportHandlers()
   registerDashboardHandlers()
   registerSettingsHandlers()

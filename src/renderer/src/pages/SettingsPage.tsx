@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { KeyRound, User, Pencil, Building2, Save, Tag, Plus, Trash2 } from 'lucide-react';
-import { authApi, settingsApi, expenseCategoryApi } from '../services/api';
+import { KeyRound, User, Pencil, Building2, Save, Tag, Plus, Trash2, Package } from 'lucide-react';
+import { authApi, settingsApi, expenseCategoryApi, materialCategoryApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ui/Toast';
 import { getErrorMessage } from '../hooks/useToastHelper';
@@ -98,6 +98,24 @@ export default function SettingsPage() {
     onError: err => toast(getErrorMessage(err), 'error'),
   });
 
+  // Materials supplied
+  const [newMatName, setNewMatName] = useState('');
+  const { data: matCats = [] } = useQuery({
+    queryKey: ['material-categories'],
+    queryFn: () => materialCategoryApi.list().then(r => r.data.data),
+    enabled: isAdmin,
+  });
+  const addMat = useMutation({
+    mutationFn: (name: string) => materialCategoryApi.create({ name }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['material-categories'] }); setNewMatName(''); toast('Material added', 'success'); },
+    onError: err => toast(getErrorMessage(err), 'error'),
+  });
+  const delMat = useMutation({
+    mutationFn: (id: string) => materialCategoryApi.delete(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['material-categories'] }); toast('Material removed', 'success'); },
+    onError: err => toast(getErrorMessage(err), 'error'),
+  });
+
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!profileForm.full_name.trim()) return toast('Full name cannot be empty', 'error');
@@ -176,7 +194,7 @@ export default function SettingsPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="flex items-center gap-1.5"><Tag size={14} /> Expense Categories</span>
+            <span className="flex items-center gap-1.5"><Tag size={14} /> Categories</span>
           </button>
         )}
       </div>
@@ -268,33 +286,62 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ── EXPENSE CATEGORIES TAB ── */}
+      {/* ── CATEGORIES TAB ── */}
       {tab === 'categories' && isAdmin && (
-        <div className="card max-w-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <Tag size={18} className="text-accent" />
-            <div>
-              <h2 className="font-semibold text-accent">Expense Categories</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Manage the categories available when recording manual expenses</p>
-            </div>
-          </div>
-          <div className="space-y-2 mb-4">
-            {(expCats as any[]).map((cat: any) => (
-              <div key={cat.id} className="flex items-center justify-between px-3 py-2 bg-background rounded-lg">
-                <span className="text-sm font-medium">{cat.name}</span>
-                <button onClick={() => delCat.mutate(cat.id)} className="p-1 text-danger hover:text-red-700 rounded" title="Delete category">
-                  <Trash2 size={14} />
-                </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="card">
+            <div className="flex items-center gap-3 mb-4">
+              <Tag size={18} className="text-accent" />
+              <div>
+                <h2 className="font-semibold text-accent">Expense Categories</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Manage the categories available when recording manual expenses</p>
               </div>
-            ))}
-            {(expCats as any[]).length === 0 && <p className="text-muted-foreground text-sm py-2">No categories yet.</p>}
+            </div>
+            <div className="space-y-2 mb-4">
+              {(expCats as any[]).map((cat: any) => (
+                <div key={cat.id} className="flex items-center justify-between px-3 py-2 bg-background rounded-lg">
+                  <span className="text-sm font-medium">{cat.name}</span>
+                  <button onClick={() => delCat.mutate(cat.id)} className="p-1 text-danger hover:text-red-700 rounded" title="Delete category">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+              {(expCats as any[]).length === 0 && <p className="text-muted-foreground text-sm py-2">No categories yet.</p>}
+            </div>
+            <form onSubmit={e => { e.preventDefault(); if (newCatName.trim()) addCat.mutate(newCatName.trim()); }} className="flex gap-2">
+              <input className="input flex-1" placeholder="New category name..." value={newCatName} onChange={e => setNewCatName(e.target.value)} />
+              <button type="submit" className="btn-primary flex items-center gap-1" disabled={addCat.isPending || !newCatName.trim()}>
+                <Plus size={14} /> Add
+              </button>
+            </form>
           </div>
-          <form onSubmit={e => { e.preventDefault(); if (newCatName.trim()) addCat.mutate(newCatName.trim()); }} className="flex gap-2">
-            <input className="input flex-1" placeholder="New category name..." value={newCatName} onChange={e => setNewCatName(e.target.value)} />
-            <button type="submit" className="btn-primary flex items-center gap-1" disabled={addCat.isPending || !newCatName.trim()}>
-              <Plus size={14} /> Add
-            </button>
-          </form>
+
+          <div className="card">
+            <div className="flex items-center gap-3 mb-4">
+              <Package size={18} className="text-accent" />
+              <div>
+                <h2 className="font-semibold text-accent">Materials Supplied</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Manage the materials suppliers can be tagged with</p>
+              </div>
+            </div>
+            <div className="space-y-2 mb-4">
+              {(matCats as any[]).map((mat: any) => (
+                <div key={mat.id} className="flex items-center justify-between px-3 py-2 bg-background rounded-lg">
+                  <span className="text-sm font-medium">{mat.name}</span>
+                  <button onClick={() => delMat.mutate(mat.id)} className="p-1 text-danger hover:text-red-700 rounded" title="Delete material">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+              {(matCats as any[]).length === 0 && <p className="text-muted-foreground text-sm py-2">No materials yet.</p>}
+            </div>
+            <form onSubmit={e => { e.preventDefault(); if (newMatName.trim()) addMat.mutate(newMatName.trim()); }} className="flex gap-2">
+              <input className="input flex-1" placeholder="New material name..." value={newMatName} onChange={e => setNewMatName(e.target.value)} />
+              <button type="submit" className="btn-primary flex items-center gap-1" disabled={addMat.isPending || !newMatName.trim()}>
+                <Plus size={14} /> Add
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

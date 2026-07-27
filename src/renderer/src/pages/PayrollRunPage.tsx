@@ -299,10 +299,10 @@ export default function PayrollRunPage() {
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmFinalize(false)} />
             <motion.div
               className="relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4"
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              initial={{ opacity: 0, scale: 0.97, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+              exit={{ opacity: 0, scale: 0.98, y: 6 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center">

@@ -1,20 +1,20 @@
-import type { MaterialType, Supplier } from '@prisma/client'
+import type { Supplier } from '@prisma/client'
 import { prisma } from '../db'
 import { handle } from './handle'
 import { BadRequestError, NotFoundError } from './errors'
 import { getMaterialTypes, setMaterialTypes } from './repositories/materialTypes'
 
-type SupplierResult = Supplier & { materialTypes: MaterialType[] }
+type SupplierResult = Supplier & { materialTypes: string[] }
 
 // The material-types child-table conversion left Supplier.materialTypes as a relation, so
 // suppliers returned from a bulk query need their material types attached by hand, matching
 // the shape every supplier had automatically when material_types was still a scalar column.
-async function attachMaterialTypes<T extends { id: string }>(suppliers: T[]): Promise<Array<T & { materialTypes: MaterialType[] }>> {
+async function attachMaterialTypes<T extends { id: string }>(suppliers: T[]): Promise<Array<T & { materialTypes: string[] }>> {
   if (suppliers.length === 0) return []
   const rows = await prisma.supplierMaterialType.findMany({
     where: { supplierId: { in: suppliers.map((s) => s.id) } }
   })
-  const bySupplier = new Map<string, MaterialType[]>()
+  const bySupplier = new Map<string, string[]>()
   for (const row of rows) {
     const arr = bySupplier.get(row.supplierId) || []
     arr.push(row.materialType)
@@ -71,7 +71,7 @@ export function registerSupplierHandlers(): void {
             notes: notes || null
           }
         })
-        const types = await setMaterialTypes(created.id, Array.isArray(materialTypes) ? (materialTypes as MaterialType[]) : [], tx)
+        const types = await setMaterialTypes(created.id, Array.isArray(materialTypes) ? materialTypes : [], tx)
         return { supplier: created, savedMaterialTypes: types }
       })
       return { ...supplier, materialTypes: savedMaterialTypes }
@@ -98,7 +98,7 @@ export function registerSupplierHandlers(): void {
             is_active: is_active !== undefined ? Boolean(is_active) : undefined
           }
         })
-        const types = materialTypes !== undefined ? await setMaterialTypes(id, materialTypes as MaterialType[], tx) : await getMaterialTypes(id)
+        const types = materialTypes !== undefined ? await setMaterialTypes(id, materialTypes, tx) : await getMaterialTypes(id)
         return { updated: result, savedMaterialTypes: types }
       })
 

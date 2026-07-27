@@ -85,11 +85,9 @@ export default function PayrollPage() {
                         <button onClick={() => navigate(`/payroll/${r.id}`)} className="flex items-center gap-1 text-primary hover:underline text-xs">
                           <Eye size={14} /> View
                         </button>
-                        {!r.finalized && (
-                          <button onClick={() => setDeleteId(r.id)} className="p-1 text-danger hover:bg-background rounded" title="Delete">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        <button onClick={() => setDeleteId(r.id)} className="p-1 text-danger hover:bg-background rounded" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -128,7 +126,11 @@ export default function PayrollPage() {
       <ConfirmDialog
         open={!!deleteId}
         title="Delete Payroll Run"
-        message="Are you sure? This will permanently delete all entries in this payroll run. Finalized runs cannot be deleted."
+        message={
+          (runs as any[]).find((r: any) => r.id === deleteId)?.finalized
+            ? 'This run is finalized - deleting it removes every entry and payment record permanently, including any already marked as paid. This cannot be undone.'
+            : 'Are you sure? This will permanently delete all entries in this payroll run.'
+        }
         onConfirm={() => { if (deleteId) remove.mutate(deleteId); setDeleteId(null); }}
         onCancel={() => setDeleteId(null)}
       />

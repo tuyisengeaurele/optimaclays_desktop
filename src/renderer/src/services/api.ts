@@ -181,6 +181,13 @@ export const expenseCategoryApi = {
   delete: (id: string) => callIpc('expenseCategories:delete', { id })
 }
 
+export const materialCategoryApi = {
+  list: () => callIpc('materialCategories:list'),
+  create: (data: { name: string }) => callIpc('materialCategories:create', data),
+  update: (id: string, data: object) => callIpc('materialCategories:update', { id, ...data }),
+  delete: (id: string) => callIpc('materialCategories:delete', { id })
+}
+
 export const reportApi = {
   production: (params?: object) => callIpc('reports:production', params || {}),
   sales: (params?: object) => callIpc('reports:sales', params || {}),

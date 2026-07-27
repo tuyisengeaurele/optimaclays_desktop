@@ -269,12 +269,24 @@ model Supplier {
 }
 
 model SupplierMaterialType {
-  id           String       @id @default(uuid())
-  supplier     Supplier     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   supplierId   String
-  materialType MaterialType
+  materialType String
 
   @@unique([supplierId, materialType])
+}
+
+// Free-text list of what suppliers can be tagged as supplying, managed from
+// Settings. Deliberately decoupled from the MaterialType enum above, which
+// stays fixed since it drives inventory/production stock tracking.
+model MaterialCategoryConfig {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  is_active  Boolean  @default(true)
+  sort_order Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model RawMaterialStock {

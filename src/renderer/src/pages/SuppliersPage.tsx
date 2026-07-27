@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { supplierApi } from '../services/api';
+import { supplierApi, materialCategoryApi } from '../services/api';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { getErrorMessage } from '../hooks/useToastHelper';
-
-const MATERIAL_OPTIONS = [
-  'CLAY', 'SAND', 'FUEL_FIREWOOD', 'FUEL_COAL', 'DIESEL', 'CEMENT', 'OTHER',
-];
 
 const EMPTY = { name: '', contact_name: '', phone: '', materialTypes: [] as string[], payment_terms: '', notes: '' };
 
@@ -25,6 +21,11 @@ export default function SuppliersPage() {
   const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => supplierApi.list().then(r => r.data.data),
+  });
+
+  const { data: materialOptions = [] } = useQuery({
+    queryKey: ['material-categories'],
+    queryFn: () => materialCategoryApi.list().then(r => r.data.data),
   });
 
   function openCreate() { setEditing(null); setForm({ ...EMPTY }); setModal(true); }
@@ -132,12 +133,15 @@ export default function SuppliersPage() {
           <div>
             <label className="label">Materials Supplied</label>
             <div className="flex flex-wrap gap-2 mt-1">
-              {MATERIAL_OPTIONS.map(m => (
-                <label key={m} className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input type="checkbox" checked={form.materialTypes.includes(m)} onChange={() => toggleMaterial(m)} className="rounded" />
-                  {m.replace(/_/g, ' ')}
+              {(materialOptions as any[]).map((m: any) => (
+                <label key={m.id} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <input type="checkbox" checked={form.materialTypes.includes(m.name)} onChange={() => toggleMaterial(m.name)} className="rounded" />
+                  {m.name}
                 </label>
               ))}
+              {(materialOptions as any[]).length === 0 && (
+                <span className="text-muted-foreground text-xs">No materials configured yet - add some in Settings.</span>
+              )}
             </div>
           </div>
           <div>

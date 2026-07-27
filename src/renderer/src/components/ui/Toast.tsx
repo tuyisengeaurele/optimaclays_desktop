@@ -34,10 +34,10 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => vo
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: 40, scale: 0.9 }}
+      initial={{ opacity: 0, x: 24, scale: 0.97 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 40, scale: 0.9, transition: { duration: 0.15 } }}
-      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+      exit={{ opacity: 0, x: 24, scale: 0.97, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm min-w-64 max-w-sm ${COLORS[toast.type]}`}
     >
       <Icon size={16} className="flex-shrink-0" />

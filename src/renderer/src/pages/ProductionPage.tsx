@@ -11,6 +11,7 @@ import { useToast } from '../components/ui/Toast';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { getErrorMessage, fmtDate, toDateInputValue } from '../hooks/useToastHelper';
 import { PRODUCTS } from '../constants/products';
+import { useTheme } from '../context/ThemeContext';
 
 const SHIFTS = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const OPEN_STAGES = ['RAW_MIXING', 'MOLDING', 'DRYING', 'KILN_FIRING', 'QUALITY_CHECK'];
@@ -30,6 +31,13 @@ const EMPTY_COMPLETE = { bricks_produced: 0, rejection_reason: '', defect_types:
 export default function ProductionPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const gridStroke = isDark ? 'rgba(255,255,255,0.1)' : '#E2D9D0';
+  const tickFill = isDark ? '#9CA3AF' : '#57534e';
+  const tooltipStyle = isDark
+    ? { background: '#1B212B', border: '1px solid #2A3140', color: '#E7EAF0', borderRadius: 8, fontSize: 12 }
+    : { background: '#fff', border: '1px solid #E2D9D0', borderRadius: 8, fontSize: 12 };
   const [modal, setModal] = useState<'start' | 'edit' | 'complete' | null>(null);
   const [selected, setSelected] = useState<ProductionBatch | null>(null);
   const [form, setForm] = useState<any>(EMPTY_START);
@@ -176,10 +184,10 @@ export default function ProductionPage() {
           <h3 className="font-semibold text-accent mb-4">Daily Output over the Last 30 Days</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={stats.daily}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2D9D0" />
-              <XAxis dataKey="date" tick={{ fontSize: 9 }} tickFormatter={d => d.slice(5)} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+              <XAxis dataKey="date" tick={{ fontSize: 9, fill: tickFill }} tickFormatter={d => d.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: tickFill }} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: isDark ? '#E7EAF0' : '#1a1a2e' }} cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }} />
               <Bar dataKey="produced" fill="#C0392B" radius={[3,3,0,0]} name="Produced" />
               <Bar dataKey="rejected" fill="#E74C3C" radius={[3,3,0,0]} name="Rejected" opacity={0.6} />
             </BarChart>
