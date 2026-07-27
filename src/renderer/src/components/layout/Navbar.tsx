@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Settings, AlertTriangle, Sun, Moon } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { useTransitionPresence } from '../../hooks/useTransitionPresence';
 import NotificationBell from '../ui/NotificationBell';
 
 export default function Navbar() {
@@ -11,7 +11,6 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [confirmLogout, setConfirmLogout] = useState(false);
-  const { shouldRender: showLogoutOverlay, visible: logoutOverlayVisible } = useTransitionPresence(confirmLogout);
 
   async function handleLogout() {
     setConfirmLogout(false);
@@ -57,32 +56,44 @@ export default function Navbar() {
       </header>
 
       {/* Logout confirmation overlay */}
-      {showLogoutOverlay && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${logoutOverlayVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmLogout(false)} />
-          <div
-            className={`relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 transition-all duration-200 ${logoutOverlayVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'}`}
+      <AnimatePresence>
+        {confirmLogout && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-danger/10 rounded-full flex items-center justify-center">
-                <AlertTriangle size={20} className="text-danger" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmLogout(false)} />
+            <motion.div
+              className="relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6"
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-danger/10 rounded-full flex items-center justify-center">
+                  <AlertTriangle size={20} className="text-danger" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-accent">Sign Out</h3>
+                  <p className="text-sm text-gray-500">Are you sure you want to sign out?</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-accent">Sign Out</h3>
-                <p className="text-sm text-gray-500">Are you sure you want to sign out?</p>
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setConfirmLogout(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button onClick={handleLogout} className="bg-danger text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors active:scale-95">
+                  Sign Out
+                </button>
               </div>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setConfirmLogout(false)} className="btn-secondary">
-                Cancel
-              </button>
-              <button onClick={handleLogout} className="bg-danger text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors active:scale-95">
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

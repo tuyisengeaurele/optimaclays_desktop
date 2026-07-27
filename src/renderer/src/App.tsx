@@ -1,5 +1,6 @@
 import type { JSX } from 'react/jsx-runtime'
 import { HashRouter, Routes, Route } from 'react-router-dom'
+import { MotionConfig } from 'framer-motion'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './components/ui/Toast'
 import ProtectedRoute, { RequireRole } from './components/layout/ProtectedRoute'
@@ -35,6 +36,7 @@ import NotFoundPage from './pages/NotFoundPage'
 
 export default function App(): JSX.Element {
   return (
+    <MotionConfig reducedMotion="user">
     <HashRouter>
       <AuthProvider>
         <ToastProvider>
@@ -231,5 +233,6 @@ export default function App(): JSX.Element {
         </ToastProvider>
       </AuthProvider>
     </HashRouter>
+    </MotionConfig>
   )
 }

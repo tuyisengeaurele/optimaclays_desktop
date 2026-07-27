@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -23,32 +24,28 @@ const COLORS = {
 };
 
 function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => void }) {
-  const [visible, setVisible] = useState(false);
-  const [leaving, setLeaving] = useState(false);
   const Icon = ICONS[toast.type];
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setVisible(true));
-    const autoClose = setTimeout(() => setLeaving(true), 4000);
-    return () => { cancelAnimationFrame(raf); clearTimeout(autoClose); };
-  }, []);
-
-  useEffect(() => {
-    if (!leaving) return;
-    const timeout = setTimeout(() => onDone(toast.id), 200);
-    return () => clearTimeout(timeout);
-  }, [leaving, onDone, toast.id]);
+    const autoClose = setTimeout(() => onDone(toast.id), 4000);
+    return () => clearTimeout(autoClose);
+  }, [toast.id, onDone]);
 
   return (
-    <div
-      className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm min-w-64 max-w-sm transition-all duration-200 ${COLORS[toast.type]} ${visible && !leaving ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-3 scale-95'}`}
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: 40, scale: 0.9 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 40, scale: 0.9, transition: { duration: 0.15 } }}
+      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+      className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm min-w-64 max-w-sm ${COLORS[toast.type]}`}
     >
       <Icon size={16} className="flex-shrink-0" />
       <span className="flex-1">{toast.message}</span>
-      <button onClick={() => setLeaving(true)}>
+      <button onClick={() => onDone(toast.id)}>
         <X size={14} />
       </button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -69,7 +66,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       <div className="fixed bottom-4 right-4 space-y-2 z-50">
-        {toasts.map(t => <ToastItem key={t.id} toast={t} onDone={remove} />)}
+        <AnimatePresence>
+          {toasts.map(t => <ToastItem key={t.id} toast={t} onDone={remove} />)}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );

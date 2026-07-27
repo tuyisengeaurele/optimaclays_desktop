@@ -1,17 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
 export default function Layout() {
   const location = useLocation();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    setVisible(false);
-    const raf = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(raf);
-  }, [location.pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -22,12 +16,17 @@ export default function Layout() {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Navbar />
         <main className="flex-1 p-6 overflow-y-auto">
-          <div
-            key={location.pathname}
-            className={`transition-all duration-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}
-          >
-            <Outlet />
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
