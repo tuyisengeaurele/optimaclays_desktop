@@ -1,6 +1,6 @@
 {
   "name": "optima-clays-desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Optima Clays Ltd desktop business management system",
   "main": "./out/main/index.js",
   "author": "Optima Clays Ltd",
