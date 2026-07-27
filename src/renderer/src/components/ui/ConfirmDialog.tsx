@@ -24,10 +24,10 @@ export default function ConfirmDialog({ open, onConfirm, onCancel, title, messag
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
           <motion.div
             className="relative bg-surface rounded-xl shadow-xl max-w-sm w-full p-6"
-            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            initial={{ opacity: 0, scale: 0.97, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            exit={{ opacity: 0, scale: 0.98, y: 6 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle size={22} className="text-warning flex-shrink-0 mt-0.5" />

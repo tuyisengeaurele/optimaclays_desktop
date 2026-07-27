@@ -132,7 +132,7 @@ export default function Sidebar() {
   return (
     <motion.aside
       animate={{ width: collapsed ? 64 : 240 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="relative flex flex-col bg-brand-navy text-white h-full flex-shrink-0"
     >
       {/* Logo */}

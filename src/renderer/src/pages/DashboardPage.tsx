@@ -7,9 +7,17 @@ import { dashboardApi } from '../services/api';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import Badge, { statusBadge } from '../components/ui/Badge';
 import { fmtRWF, fmtDate } from '../hooks/useToastHelper';
+import { useTheme } from '../context/ThemeContext';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const gridStroke = isDark ? 'rgba(255,255,255,0.1)' : '#E2D9D0';
+  const tickFill = isDark ? '#9CA3AF' : '#57534e';
+  const tooltipStyle = isDark
+    ? { background: '#1B212B', border: '1px solid #2A3140', color: '#E7EAF0', borderRadius: 8, fontSize: 12 }
+    : { background: '#fff', border: '1px solid #E2D9D0', borderRadius: 8, fontSize: 12 };
   const { data, isLoading } = useQuery({ queryKey: ['dashboard'], queryFn: () => dashboardApi.get().then(r => r.data.data) });
 
   const kpis = data?.kpis || {};
@@ -50,10 +58,10 @@ export default function DashboardPage() {
           <h3 className="font-semibold text-accent mb-4">Production over the Last 30 Days</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={productionChart}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2D9D0" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: tickFill }} tickFormatter={d => d.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: tickFill }} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: isDark ? '#E7EAF0' : '#1a1a2e' }} cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }} />
               <Bar dataKey="produced" fill="#C0392B" radius={[3, 3, 0, 0]} name="Produced" />
             </BarChart>
           </ResponsiveContainer>
@@ -63,11 +71,11 @@ export default function DashboardPage() {
           <h3 className="font-semibold text-accent mb-4">Revenue vs Expenses over 6 Months</h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={revenueChart}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2D9D0" />
-              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} />
-              <Tooltip formatter={(v: any) => fmtRWF(v)} />
-              <Legend />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: tickFill }} />
+              <YAxis tick={{ fontSize: 10, fill: tickFill }} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} />
+              <Tooltip formatter={(v: any) => fmtRWF(v)} contentStyle={tooltipStyle} labelStyle={{ color: isDark ? '#E7EAF0' : '#1a1a2e' }} cursor={{ stroke: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: tickFill }} />
               <Line type="monotone" dataKey="revenue" stroke="#27AE60" strokeWidth={2} name="Revenue" dot={false} />
               <Line type="monotone" dataKey="expenses" stroke="#E74C3C" strokeWidth={2} name="Expenses" dot={false} />
             </LineChart>
