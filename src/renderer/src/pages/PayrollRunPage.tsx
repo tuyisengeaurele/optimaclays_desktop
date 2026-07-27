@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, ArrowLeft, Lock, FileText, Pencil, CheckCircle2 } from 'lucide-react';
+import { Download, ArrowLeft, Lock, FileText, Pencil, CheckCircle2, CheckCheck, RotateCcw } from 'lucide-react';
 import { payrollApi } from '../services/api';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import Badge, { statusBadge } from '../components/ui/Badge';
 import { getErrorMessage, MONTHS, fmtRWF } from '../hooks/useToastHelper';
+import { useTransitionPresence } from '../hooks/useTransitionPresence';
 
 export default function PayrollRunPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -22,6 +23,7 @@ export default function PayrollRunPage() {
   const [editDeduction, setEditDeduction] = useState('');
   const [editStatus, setEditStatus] = useState('');
   const [confirmFinalize, setConfirmFinalize] = useState(false);
+  const { shouldRender: showFinalizeOverlay, visible: finalizeOverlayVisible } = useTransitionPresence(confirmFinalize);
 
   const { data: run, isLoading } = useQuery({
     queryKey: ['payroll', runId],
@@ -46,6 +48,29 @@ export default function PayrollRunPage() {
       qc.invalidateQueries({ queryKey: ['payroll'] });
       toast('Payroll run finalized successfully', 'success');
       setConfirmFinalize(false);
+    },
+    onError: err => toast(getErrorMessage(err), 'error'),
+  });
+
+  const markAllPaid = useMutation({
+    mutationFn: () => payrollApi.markAllPaid(runId!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', runId] });
+      qc.invalidateQueries({ queryKey: ['payroll'] });
+      toast('All entries marked as paid', 'success');
+    },
+    onError: err => toast(getErrorMessage(err), 'error'),
+  });
+
+  const toggleEntryPaid = useMutation({
+    mutationFn: ({ entryId, paid }: { entryId: string; paid: boolean }) =>
+      payrollApi.updateEntry(runId!, entryId, {
+        payment_status: paid ? 'PAID' : 'PENDING',
+        payment_date: paid ? new Date().toISOString() : null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', runId] });
+      qc.invalidateQueries({ queryKey: ['payroll'] });
     },
     onError: err => toast(getErrorMessage(err), 'error'),
   });
@@ -104,6 +129,16 @@ export default function PayrollRunPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {paidCount < (run.entries?.length || 0) && (
+            <button
+              className="btn-outline flex items-center gap-2"
+              onClick={() => markAllPaid.mutate()}
+              disabled={markAllPaid.isPending}
+              title="Marks every entry not yet paid as paid - each one stays editable afterward"
+            >
+              <CheckCheck size={14} /> {markAllPaid.isPending ? 'Marking...' : 'Mark All as Paid'}
+            </button>
+          )}
           {!run.finalized && (
             <button
               className="btn-outline flex items-center gap-2"
@@ -165,7 +200,7 @@ export default function PayrollRunPage() {
                     <Badge variant={statusBadge(entry.payment_status)}>{entry.payment_status}</Badge>
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {!run.finalized && (
                         <button
                           onClick={() => openEdit(entry)}
@@ -175,6 +210,15 @@ export default function PayrollRunPage() {
                           <Pencil size={12} /> Edit
                         </button>
                       )}
+                      <button
+                        onClick={() => toggleEntryPaid.mutate({ entryId: entry.id, paid: entry.payment_status !== 'PAID' })}
+                        disabled={toggleEntryPaid.isPending}
+                        className={`flex items-center gap-1 text-xs hover:underline ${entry.payment_status === 'PAID' ? 'text-muted-foreground' : 'text-success'}`}
+                        title={entry.payment_status === 'PAID' ? 'Mark as pending' : 'Mark as paid'}
+                      >
+                        {entry.payment_status === 'PAID' ? <RotateCcw size={12} /> : <CheckCheck size={12} />}
+                        {entry.payment_status === 'PAID' ? 'Mark Pending' : 'Mark Paid'}
+                      </button>
                       <button
                         onClick={() => handlePayslip(entry.employeeId)}
                         className="flex items-center gap-1 text-xs text-primary hover:underline"
@@ -244,10 +288,12 @@ export default function PayrollRunPage() {
       </Modal>
 
       {/* Finalize confirmation */}
-      {confirmFinalize && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {showFinalizeOverlay && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${finalizeOverlayVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmFinalize(false)} />
-          <div className="relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div
+            className={`relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 transition-all duration-200 ${finalizeOverlayVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'}`}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center">
                 <Lock size={20} className="text-warning" />

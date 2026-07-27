@@ -147,11 +147,15 @@ export default function OrdersPage() {
                     <td className="px-3 py-3"><Badge variant={statusBadge(o.status)}>{o.status}</Badge></td>
                     <td className="px-3 py-3">
                       <div className="flex gap-1 items-center flex-wrap">
-                        <button title="Update Status" onClick={() => { setSelected(o); setModal('status'); }} className="text-xs text-primary hover:underline">Status</button>
-                        <span className="text-muted-foreground">·</span>
-                        <button title="Proforma Invoice" onClick={() => generateProforma.mutate(o.id)} className="text-xs text-accent hover:underline flex items-center gap-1">
-                          <FileText size={11} /> PRO
-                        </button>
+                        {o.status !== 'DELIVERED' && (
+                          <>
+                            <button title="Update Status" onClick={() => { setSelected(o); setModal('status'); }} className="text-xs text-primary hover:underline">Status</button>
+                            <span className="text-muted-foreground">·</span>
+                            <button title="Proforma Invoice" onClick={() => generateProforma.mutate(o.id)} className="text-xs text-accent hover:underline flex items-center gap-1">
+                              <FileText size={11} /> PRO
+                            </button>
+                          </>
+                        )}
                         {o.status === 'PENDING' && (
                           <>
                             <span className="text-muted-foreground">·</span>
@@ -162,7 +166,7 @@ export default function OrdersPage() {
                         )}
                         {isAdmin && (
                           <>
-                            <span className="text-muted-foreground">·</span>
+                            {o.status !== 'DELIVERED' && <span className="text-muted-foreground">·</span>}
                             <button title="Delete Order" onClick={() => setDeleteId(o.id)} className="text-xs text-danger hover:underline flex items-center gap-1">
                               <Trash2 size={11} />
                             </button>

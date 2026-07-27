@@ -8,7 +8,9 @@ import { LOGO_PATH } from './logoPath'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-type PayrollRunWithCount = Prisma.PayrollRunGetPayload<{ include: { _count: { select: { entries: true } } } }>
+type PayrollRunWithCount = Prisma.PayrollRunGetPayload<{
+  include: { _count: { select: { entries: true } }; entries: { select: { net_salary: true } } }
+}>
 type PayrollRunWithEntries = Prisma.PayrollRunGetPayload<{ include: { entries: { include: { employee: true } } } }>
 type PayrollEntryWithEmployee = Prisma.PayrollEntryGetPayload<{ include: { employee: true } }>
 
@@ -35,6 +37,10 @@ interface FinalizeRunPayload {
   runId: string
 }
 
+interface MarkAllPaidPayload {
+  runId: string
+}
+
 interface DeletePayrollRunPayload {
   runId: string
 }
@@ -52,7 +58,10 @@ export function registerPayrollHandlers(): void {
   handle<void, PayrollRunWithCount[]>('payroll:list', null, async () =>
     prisma.payrollRun.findMany({
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
-      include: { _count: { select: { entries: true } } }
+      // entries only selects net_salary (not the full row/employee), just
+      // enough for the list view to sum a real Total Net instead of always
+      // showing "Pending" - full entry detail still comes from payroll:get.
+      include: { _count: { select: { entries: true } }, entries: { select: { net_salary: true } } }
     })
   )
 
@@ -139,6 +148,31 @@ export function registerPayrollHandlers(): void {
     { resource: 'payroll', action: 'UPDATE' }
   )
 
+  // Marks every not-yet-paid entry as PAID in one pass - individual entries
+  // stay just as editable afterward as they were before, this only saves
+  // clicking into each one to flip the same status by hand.
+  handle<MarkAllPaidPayload, PayrollRunWithEntries>(
+    'payroll:markAllPaid',
+    ['ADMIN', 'ACCOUNTANT'],
+    async ({ runId }) => {
+      const run = await prisma.payrollRun.findUnique({ where: { id: runId } })
+      if (!run) throw new NotFoundError('Payroll run not found')
+
+      await prisma.payrollEntry.updateMany({
+        where: { payrollRunId: runId, payment_status: { not: 'PAID' } },
+        data: { payment_status: 'PAID', payment_date: new Date() }
+      })
+
+      const updated = await prisma.payrollRun.findUnique({
+        where: { id: runId },
+        include: { entries: { include: { employee: true } } }
+      })
+      if (!updated) throw new NotFoundError('Payroll run not found')
+      return updated
+    },
+    { resource: 'payroll', action: 'UPDATE' }
+  )
+
   handle<FinalizeRunPayload, PayrollRun>(
     'payroll:finalize',
     ['ADMIN', 'ACCOUNTANT'],
@@ -214,6 +248,13 @@ export function registerPayrollHandlers(): void {
       ]
       ws.getRow(2).values = headers
       ws.getRow(2).font = { bold: true }
+      // Matches the bank's own template: the two RESERVED columns (bookending
+      // the row) stay red, the columns the bank actually reads are green.
+      const RESERVED_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } }
+      const FIELD_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D050' } }
+      headers.forEach((header, i) => {
+        ws.getRow(2).getCell(i + 1).fill = header === 'RESERVED' ? RESERVED_FILL : FIELD_FILL
+      })
 
       let total = 0
       run.entries.forEach((entry: PayrollEntryWithEmployee, i: number) => {
@@ -257,11 +298,14 @@ export function registerPayrollHandlers(): void {
       })
       if (!entry) throw new NotFoundError('Payslip not found')
 
+      const settings = await prisma.companySettings.findUnique({ where: { id: 'singleton' } })
+      const companyAddress = settings?.address || 'Rwanda, Southern Province, Muhanga, Shyogwe, Ruli'
+
       const monStr = MONTHS[run.month - 1]
       const fmt = (n: number): string => n.toLocaleString('en-RW')
 
       // Read logo
-      let logoHtml = '<div style="background:#C0392B;color:white;padding:20px;font-size:24px;font-weight:bold;">OPTIMA CLAYS LTD</div>'
+      let logoHtml = '<div style="color:#2C3E50;padding:10px 0;font-size:22px;font-weight:bold;">OPTIMA CLAYS LTD</div>'
       try {
         if (fs.existsSync(LOGO_PATH)) {
           const ext = 'png'
@@ -279,8 +323,9 @@ export function registerPayrollHandlers(): void {
 <title>Payslip - ${entry.employee.full_name}</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 40px; color: #2C3E50; }
-  .header { background: #C0392B; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-  .header h1 { margin: 0; font-size: 20px; }
+  .header { background: #fff; border-bottom: 2px solid #2C3E50; padding-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header h1 { margin: 0; font-size: 20px; color: #C0392B; }
+  .header .company-address { font-size: 11px; color: #666; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; margin-top: 20px; }
   td, th { border: 1px solid #ddd; padding: 10px; }
   th { background: #F5F0EB; font-weight: bold; }
@@ -289,8 +334,11 @@ export function registerPayrollHandlers(): void {
 </head>
 <body>
 <div class="header">
-  <div>${logoHtml}</div>
   <div>
+    ${logoHtml}
+    <div class="company-address">${companyAddress}</div>
+  </div>
+  <div style="text-align:right">
     <h1>PAYSLIP</h1>
     <div>${monStr} ${run.year}</div>
   </div>

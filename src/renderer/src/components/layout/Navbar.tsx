@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Settings, AlertTriangle, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTransitionPresence } from '../../hooks/useTransitionPresence';
 import NotificationBell from '../ui/NotificationBell';
 
 export default function Navbar() {
@@ -10,6 +11,7 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const { shouldRender: showLogoutOverlay, visible: logoutOverlayVisible } = useTransitionPresence(confirmLogout);
 
   async function handleLogout() {
     setConfirmLogout(false);
@@ -55,10 +57,12 @@ export default function Navbar() {
       </header>
 
       {/* Logout confirmation overlay */}
-      {confirmLogout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {showLogoutOverlay && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${logoutOverlayVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmLogout(false)} />
-          <div className="relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6">
+          <div
+            className={`relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 transition-all duration-200 ${logoutOverlayVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'}`}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-danger/10 rounded-full flex items-center justify-center">
                 <AlertTriangle size={20} className="text-danger" />
@@ -72,7 +76,7 @@ export default function Navbar() {
               <button onClick={() => setConfirmLogout(false)} className="btn-secondary">
                 Cancel
               </button>
-              <button onClick={handleLogout} className="bg-danger text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
+              <button onClick={handleLogout} className="bg-danger text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors active:scale-95">
                 Sign Out
               </button>
             </div>

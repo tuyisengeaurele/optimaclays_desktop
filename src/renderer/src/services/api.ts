@@ -51,6 +51,7 @@ export const payrollApi = {
   get: (runId: string) => callIpc('payroll:get', { runId }),
   create: (data: { month: number; year: number }) => callIpc('payroll:create', data),
   updateEntry: (runId: string, entryId: string, data: object) => callIpc('payroll:updateEntry', { runId, entryId, ...data }),
+  markAllPaid: (runId: string) => callIpc('payroll:markAllPaid', { runId }),
   finalize: (runId: string) => callIpc('payroll:finalize', { runId }),
   delete: (runId: string) => callIpc('payroll:delete', { runId }),
   export: (runId: string) => saveBufferViaDialog('payroll:export', { runId }, 'Payroll'),
@@ -149,7 +150,8 @@ export const invoiceApi = {
   list: () => callIpc('invoices:list'),
   get: (id: string) => callIpc('invoices:get', { id }),
   create: (data: unknown) => callIpc('invoices:create', data),
-  delete: (id: string) => callIpc('invoices:delete', { id })
+  delete: (id: string) => callIpc('invoices:delete', { id }),
+  downloadPdf: (id: string) => downloadPdfViaDialog('invoices:pdf', { id }, 'Invoices')
 }
 
 export const paymentApi = {
@@ -185,8 +187,7 @@ export const reportApi = {
   payroll: (params?: object) => callIpc('reports:payroll', params || {}),
   financials: (params?: object) => callIpc('reports:financials', params || {}),
   exportInvoices: (params?: object) => saveBufferViaDialog('reports:exportInvoices', params || {}, 'Reports'),
-  exportExpenses: (params?: object) => saveBufferViaDialog('reports:exportExpenses', params || {}, 'Reports'),
-  exportPayments: (params?: object) => saveBufferViaDialog('reports:exportPayments', params || {}, 'Reports')
+  exportExpenses: (params?: object) => saveBufferViaDialog('reports:exportExpenses', params || {}, 'Reports')
 }
 
 export const dashboardApi = {

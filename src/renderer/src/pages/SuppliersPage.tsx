@@ -12,7 +12,7 @@ const MATERIAL_OPTIONS = [
   'CLAY', 'SAND', 'FUEL_FIREWOOD', 'FUEL_COAL', 'DIESEL', 'CEMENT', 'OTHER',
 ];
 
-const EMPTY = { name: '', contact_name: '', phone: '', material_types: [] as string[], payment_terms: '', notes: '' };
+const EMPTY = { name: '', contact_name: '', phone: '', materialTypes: [] as string[], payment_terms: '', notes: '' };
 
 export default function SuppliersPage() {
   const qc = useQueryClient();
@@ -30,14 +30,14 @@ export default function SuppliersPage() {
   function openCreate() { setEditing(null); setForm({ ...EMPTY }); setModal(true); }
   function openEdit(s: any) {
     setEditing(s);
-    setForm({ name: s.name, contact_name: s.contact_name || '', phone: s.phone || '', material_types: s.material_types || [], payment_terms: s.payment_terms || '', notes: s.notes || '' });
+    setForm({ name: s.name, contact_name: s.contact_name || '', phone: s.phone || '', materialTypes: s.materialTypes || [], payment_terms: s.payment_terms || '', notes: s.notes || '' });
     setModal(true);
   }
 
   function toggleMaterial(m: string) {
     setForm(f => ({
       ...f,
-      material_types: f.material_types.includes(m) ? f.material_types.filter(x => x !== m) : [...f.material_types, m],
+      materialTypes: f.materialTypes.includes(m) ? f.materialTypes.filter(x => x !== m) : [...f.materialTypes, m],
     }));
   }
 
@@ -82,10 +82,10 @@ export default function SuppliersPage() {
                     <td className="px-3 py-3">{s.phone || '—'}</td>
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {(s.material_types || []).map((m: string) => (
+                        {(s.materialTypes || []).map((m: string) => (
                           <span key={m} className="badge bg-blue-50 text-blue-700 text-xs">{m.replace(/_/g, ' ')}</span>
                         ))}
-                        {!s.material_types?.length && <span className="text-muted-foreground">—</span>}
+                        {!s.materialTypes?.length && <span className="text-muted-foreground">—</span>}
                       </div>
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">{s.payment_terms || '—'}</td>
@@ -134,7 +134,7 @@ export default function SuppliersPage() {
             <div className="flex flex-wrap gap-2 mt-1">
               {MATERIAL_OPTIONS.map(m => (
                 <label key={m} className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input type="checkbox" checked={form.material_types.includes(m)} onChange={() => toggleMaterial(m)} className="rounded" />
+                  <input type="checkbox" checked={form.materialTypes.includes(m)} onChange={() => toggleMaterial(m)} className="rounded" />
                   {m.replace(/_/g, ' ')}
                 </label>
               ))}

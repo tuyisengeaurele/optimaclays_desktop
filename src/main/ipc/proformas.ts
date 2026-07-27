@@ -4,6 +4,7 @@ import { prisma } from '../db'
 import { handle } from './handle'
 import { BadRequestError, NotFoundError } from './errors'
 import { LOGO_PATH } from './logoPath'
+import { numberToWords } from './numberToWords'
 
 type ProformaWithDetail = Prisma.ProformaInvoiceGetPayload<{ include: { customer: true; order: true } }>
 
@@ -47,45 +48,6 @@ const PRODUCT_CATALOGUE: Record<string, { name: string; dimensions: string; appl
   HALF_BRICK: { name: 'Half Brick', dimensions: '21 × 5 × 6.5 cm', application: 'Finishing & decorative detailing' },
   LOW_ROCK_BOND: { name: 'Low Rock Bond', dimensions: '21 × 5.5 × 10 cm', application: 'Feature walls & landscaping' },
   CUSTOM: { name: 'Custom Product', dimensions: 'As specified', application: 'Custom order' }
-}
-
-function numberToWords(n: number): string {
-  const ones = [
-    '',
-    'one',
-    'two',
-    'three',
-    'four',
-    'five',
-    'six',
-    'seven',
-    'eight',
-    'nine',
-    'ten',
-    'eleven',
-    'twelve',
-    'thirteen',
-    'fourteen',
-    'fifteen',
-    'sixteen',
-    'seventeen',
-    'eighteen',
-    'nineteen'
-  ]
-  const tensArr = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
-
-  function convert(num: number): string {
-    if (num === 0) return ''
-    if (num < 20) return ones[num] + ' '
-    if (num < 100) return tensArr[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '') + ' '
-    if (num < 1_000) return ones[Math.floor(num / 100)] + ' hundred ' + convert(num % 100)
-    if (num < 1_000_000) return convert(Math.floor(num / 1_000)) + 'thousand ' + convert(num % 1_000)
-    if (num < 1_000_000_000) return convert(Math.floor(num / 1_000_000)) + 'million ' + convert(num % 1_000_000)
-    return convert(Math.floor(num / 1_000_000_000)) + 'billion ' + convert(num % 1_000_000_000)
-  }
-
-  const raw = convert(Math.round(n)).trim().replace(/\s+/g, ' ')
-  return raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
 async function buildProformaHtml(id: string): Promise<{ html: string; number: string } | null> {
@@ -137,7 +99,7 @@ async function buildProformaHtml(id: string): Promise<{ html: string; number: st
   const clientLocation = customer.location || ''
 
   // Logo, embed as base64 so it prints offline
-  let logoHtml = `<div style="width:80px;height:80px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;letter-spacing:1px;">OPTIMA<br>CLAYS</div>`
+  let logoHtml = `<div style="width:80px;height:80px;background:#f0eeec;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1a1a2e;letter-spacing:1px;">OPTIMA<br>CLAYS</div>`
   try {
     if (fs.existsSync(LOGO_PATH)) {
       const b64 = fs.readFileSync(LOGO_PATH).toString('base64')
@@ -162,18 +124,18 @@ async function buildProformaHtml(id: string): Promise<{ html: string; number: st
   .page { max-width: 880px; margin: 30px auto; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 32px rgba(0,0,0,0.13); }
 
   /* ── HEADER ── */
-  .hd { background: #b71c1c; padding: 28px 36px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .hd { background: #fff; padding: 24px 36px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #1a1a2e; }
   .hd-left { display: flex; flex-direction: column; gap: 10px; }
-  .hd-company { color: rgba(255,255,255,0.9); font-size: 11.5px; line-height: 1.65; margin-top: 4px; }
-  .hd-company strong { display: block; font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.3px; margin-bottom: 3px; }
+  .hd-company { color: #666; font-size: 11.5px; line-height: 1.65; margin-top: 4px; }
+  .hd-company strong { display: block; font-size: 15px; font-weight: 700; color: #1a1a2e; letter-spacing: 0.3px; margin-bottom: 3px; }
   .hd-right { text-align: right; flex-shrink: 0; }
-  .doc-word { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: 3px; line-height: 1; }
-  .doc-sub  { font-size: 12px; color: rgba(255,255,255,0.65); letter-spacing: 4px; margin-top: 2px; text-transform: uppercase; }
-  .doc-num  { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.95); margin-top: 10px; }
+  .doc-word { font-size: 32px; font-weight: 800; color: #b71c1c; letter-spacing: 3px; line-height: 1; }
+  .doc-sub  { font-size: 12px; color: #999; letter-spacing: 4px; margin-top: 2px; text-transform: uppercase; }
+  .doc-num  { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-top: 10px; }
   .doc-dates { margin-top: 6px; }
-  .doc-dates td { font-size: 11.5px; color: rgba(255,255,255,0.75); padding: 1.5px 0; }
-  .doc-dates td:first-child { padding-right: 12px; opacity: 0.6; }
-  .doc-dates td:last-child  { font-weight: 600; color: rgba(255,255,255,0.95); }
+  .doc-dates td { font-size: 11.5px; color: #888; padding: 1.5px 0; }
+  .doc-dates td:first-child { padding-right: 12px; opacity: 0.7; }
+  .doc-dates td:last-child  { font-weight: 600; color: #1a1a2e; }
 
   /* ── ADDRESS ROW ── */
   .addr-row { display: flex; border-bottom: 1.5px solid #f0f0f0; }
