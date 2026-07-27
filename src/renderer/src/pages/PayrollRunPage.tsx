@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, ArrowLeft, Lock, FileText, Pencil, CheckCircle2, CheckCheck, RotateCcw } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { payrollApi } from '../services/api';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import Badge, { statusBadge } from '../components/ui/Badge';
 import { getErrorMessage, MONTHS, fmtRWF } from '../hooks/useToastHelper';
-import { useTransitionPresence } from '../hooks/useTransitionPresence';
 
 export default function PayrollRunPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -23,7 +23,6 @@ export default function PayrollRunPage() {
   const [editDeduction, setEditDeduction] = useState('');
   const [editStatus, setEditStatus] = useState('');
   const [confirmFinalize, setConfirmFinalize] = useState(false);
-  const { shouldRender: showFinalizeOverlay, visible: finalizeOverlayVisible } = useTransitionPresence(confirmFinalize);
 
   const { data: run, isLoading } = useQuery({
     queryKey: ['payroll', runId],
@@ -288,30 +287,42 @@ export default function PayrollRunPage() {
       </Modal>
 
       {/* Finalize confirmation */}
-      {showFinalizeOverlay && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${finalizeOverlayVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmFinalize(false)} />
-          <div
-            className={`relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 transition-all duration-200 ${finalizeOverlayVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'}`}
+      <AnimatePresence>
+        {confirmFinalize && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center">
-                <Lock size={20} className="text-warning" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmFinalize(false)} />
+            <motion.div
+              className="relative bg-surface rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4"
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center">
+                  <Lock size={20} className="text-warning" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-accent">Finalize Payroll Run</h3>
+                  <p className="text-sm text-gray-500">This will lock all entries and enable bank export. This action cannot be undone.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-accent">Finalize Payroll Run</h3>
-                <p className="text-sm text-gray-500">This will lock all entries and enable bank export. This action cannot be undone.</p>
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setConfirmFinalize(false)} className="btn-secondary">Cancel</button>
+                <button onClick={() => finalize.mutate()} disabled={finalize.isPending} className="btn-primary">
+                  {finalize.isPending ? 'Finalizing...' : 'Yes, Finalize'}
+                </button>
               </div>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setConfirmFinalize(false)} className="btn-secondary">Cancel</button>
-              <button onClick={() => finalize.mutate()} disabled={finalize.isPending} className="btn-primary">
-                {finalize.isPending ? 'Finalizing...' : 'Yes, Finalize'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, DollarSign, Factory, Package,
   ShoppingCart, FileText, FileCheck, Truck, TrendingUp, BarChart2,
@@ -129,8 +130,10 @@ export default function Sidebar() {
     .filter((item): item is NavItem => !!item && (!item.roles || item.roles.includes(role)));
 
   return (
-    <aside
-      className={`relative flex flex-col bg-brand-navy text-white transition-all duration-200 ${collapsed ? 'w-16' : 'w-60'} h-full flex-shrink-0`}
+    <motion.aside
+      animate={{ width: collapsed ? 64 : 240 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      className="relative flex flex-col bg-brand-navy text-white h-full flex-shrink-0"
     >
       {/* Logo */}
       <div className={`flex items-center gap-2.5 px-3.5 py-3.5 border-b border-white/10 flex-shrink-0 ${collapsed ? 'justify-center' : ''}`}>
@@ -228,7 +231,11 @@ export default function Sidebar() {
                         {({ isActive }) => (
                           <>
                             {isActive && !collapsed && (
-                              <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/80" />
+                              <motion.span
+                                layoutId="sidebar-active-pill"
+                                className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/80"
+                                transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                              />
                             )}
                             <Icon size={16} className="flex-shrink-0" />
                             {!collapsed && <span className="flex-1 truncate">{label}</span>}
@@ -262,6 +269,6 @@ export default function Sidebar() {
       >
         {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
       </button>
-    </aside>
+    </motion.aside>
   );
 }
