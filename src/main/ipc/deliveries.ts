@@ -167,7 +167,7 @@ ${delivery.notes ? `<div class="section"><div class="label">Notes</div><div clas
 </div>
 
 <div class="footer">
-  OPTIMA CLAYS LTD &nbsp;|&nbsp; ${settings?.phone || ''} &nbsp;|&nbsp; ${settings?.email || ''} &nbsp;|&nbsp; Bank: ${settings?.bank_name || ''} &nbsp;|&nbsp; Acc: ${settings?.bank_account || ''}
+  OPTIMA CLAYS LTD &nbsp;|&nbsp; ${settings?.phone || ''} &nbsp;|&nbsp; ${settings?.email || ''}
 </div>
 
 </body>

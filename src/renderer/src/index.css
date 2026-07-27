@@ -46,16 +46,16 @@ input::-ms-clear {
     @apply bg-surface rounded-xl shadow-sm border border-border p-6;
   }
   .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors;
+    @apply bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-150 active:scale-[0.97];
   }
   .btn-secondary {
-    @apply bg-secondary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors;
+    @apply bg-secondary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-all duration-150 active:scale-[0.97];
   }
   .btn-outline {
-    @apply border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-background transition-colors;
+    @apply border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-background transition-all duration-150 active:scale-[0.97];
   }
   .input {
-    @apply w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-surface;
+    @apply w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-surface transition-shadow duration-150;
   }
   .label {
     @apply block text-sm font-medium text-accent mb-1;
@@ -74,4 +74,13 @@ input::-ms-clear {
 @media print {
   .no-print { display: none !important; }
   nav, aside, header { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

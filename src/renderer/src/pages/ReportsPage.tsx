@@ -76,20 +76,12 @@ export default function ReportsPage() {
             </button>
           )}
           {tab === 'financials' && (
-            <>
-              <button
-                onClick={() => reportApi.exportExpenses({ from, to }).catch(err => toast(getErrorMessage(err), 'error'))}
-                className="btn-outline flex items-center gap-1.5 text-sm"
-              >
-                <Download size={14} /> Expenses CSV
-              </button>
-              <button
-                onClick={() => reportApi.exportPayments({ from, to }).catch(err => toast(getErrorMessage(err), 'error'))}
-                className="btn-outline flex items-center gap-1.5 text-sm"
-              >
-                <Download size={14} /> Payments CSV
-              </button>
-            </>
+            <button
+              onClick={() => reportApi.exportExpenses({ from, to }).catch(err => toast(getErrorMessage(err), 'error'))}
+              className="btn-outline flex items-center gap-1.5 text-sm"
+            >
+              <Download size={14} /> Expenses CSV
+            </button>
           )}
         </div>
       )}

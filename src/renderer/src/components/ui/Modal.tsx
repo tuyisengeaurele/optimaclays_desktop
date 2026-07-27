@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useTransitionPresence } from '../../hooks/useTransitionPresence';
 
 interface Props {
   open?: boolean;
@@ -13,11 +14,14 @@ interface Props {
 const sizes = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-2xl' };
 
 export default function Modal({ open, isOpen, onClose, title, children, size = 'md' }: Props) {
-  if (!(open ?? isOpen)) return null;
+  const { shouldRender, visible } = useTransitionPresence(!!(open ?? isOpen));
+  if (!shouldRender) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${visible ? 'opacity-100' : 'opacity-0'}`}>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className={`relative bg-surface rounded-xl shadow-xl w-full ${sizes[size]} max-h-[90vh] flex flex-col`}>
+      <div
+        className={`relative bg-surface rounded-xl shadow-xl w-full ${sizes[size]} max-h-[90vh] flex flex-col transition-all duration-200 ${visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'}`}
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="font-semibold text-accent">{title}</h2>
           <button onClick={onClose} className="p-1 hover:bg-background rounded-lg transition-colors">
