@@ -94,11 +94,15 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex gap-2 items-center">
-                        <button onClick={() => { setSelectedInvoice(inv); setPayForm({ amount: inv.balance || 0, date: new Date().toISOString().slice(0,10), method: 'BANK_TRANSFER', reference: '', notes: '' }); setModal('payment'); }}
-                          className="flex items-center gap-1 text-xs text-primary hover:underline">
-                          <CreditCard size={12} /> Payment
-                        </button>
-                        <span className="text-muted-foreground">·</span>
+                        {inv.balance > 0 && (
+                          <>
+                            <button onClick={() => { setSelectedInvoice(inv); setPayForm({ amount: inv.balance || 0, date: new Date().toISOString().slice(0,10), method: 'BANK_TRANSFER', reference: '', notes: '' }); setModal('payment'); }}
+                              className="flex items-center gap-1 text-xs text-primary hover:underline">
+                              <CreditCard size={12} /> Payment
+                            </button>
+                            <span className="text-muted-foreground">·</span>
+                          </>
+                        )}
                         <button onClick={() => invoiceApi.downloadPdf(inv.id).catch((err: unknown) => toast(getErrorMessage(err), 'error'))}
                           className="flex items-center gap-1 text-xs text-accent hover:underline" title="Download PDF">
                           <Download size={12} /> PDF
